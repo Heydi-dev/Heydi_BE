@@ -43,6 +43,9 @@ public class SecurityConfig {
                 .requestMatchers("/user/signup").permitAll() // 회원가입
                 .requestMatchers("/auth/login").permitAll() // 로그인
                 
+                // Swagger UI 및 OpenAPI 문서 경로 허용
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                
                 // 인증 필요 API
                 .requestMatchers("/auth/logout").authenticated() // 로그아웃
                 .requestMatchers("/user/withdraw").authenticated() // 회원탈퇴

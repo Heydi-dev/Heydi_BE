@@ -59,13 +59,9 @@ public class AuthService {
     }
 
     public User getUserIncludingDeleted(String username) {
-        User user = userRepository.findByUsername(username)
+        // 탈퇴하지 않은 사용자만 조회 (탈퇴한 사용자의 username으로 재가입 가능하도록)
+        return userRepository.findByUsernameAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.LOGIN_FAILED));
-
-        if (user.isDeleted()) {
-            throw new BusinessException(ErrorCode.USER_DELETED);
-        }
-        return user;
     }
 
     public void verifyPassword(String rawPassword, String passwordHash) {

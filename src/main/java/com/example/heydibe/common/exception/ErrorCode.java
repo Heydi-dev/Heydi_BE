@@ -10,63 +10,63 @@ public enum ErrorCode {
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
             "401",
-            "인증에 실패했습니다."
+            "Authentication failed."
     ),
 
     // 서버 내부 오류
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "500",
-            "서버 내부 오류가 발생했습니다."
+            "Internal server error occurred."
     ),
 
     // 비밀번호 불일치
     PASSWORD_MISMATCH(
             HttpStatus.BAD_REQUEST,
             "4001",
-            "비밀번호가 일치하지 않습니다."
+            "Password does not match."
     ),
 
     // 세션 오류
     SESSION_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "500",
-            "세션 처리 중 오류가 발생했습니다."
+            "An error occurred while processing the session."
     ),
 
     // 로그인 실패
     LOGIN_FAILED(
             HttpStatus.UNAUTHORIZED,
             "401",
-            "로그인에 실패했습니다."
+            "Login failed."
     ),
 
     // 삭제된 사용자
     USER_DELETED(
             HttpStatus.UNAUTHORIZED,
             "401",
-            "삭제된 사용자입니다."
+            "User has been deleted."
     ),
 
     // 아이디 중복
     USERNAME_DUPLICATED(
             HttpStatus.CONFLICT,
             "2011",
-            "이미 존재하는 아이디입니다."
+            "Username already exists."
     ),
 
     // 이미 삭제된 사용자
     ALREADY_DELETED_USER(
             HttpStatus.BAD_REQUEST,
             "4001",
-            "이미 삭제된 사용자입니다."
+            "User has already been deleted."
     ),
 
     // S3 Presigned URL 생성 실패
     S3_PRESIGNED_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "500",
-            "S3 Presigned URL 생성에 실패했습니다."
+            "Failed to generate S3 Presigned URL."
     );
 
     private final HttpStatus httpStatus;

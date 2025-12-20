@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 public class CheckUsernameRequest {
 
-    @NotBlank(message = "username은 필수입니다")
-    @Size(max = 255, message = "username 길이가 너무 깁니다")
+    @NotBlank(message = "username is required")
+    @Size(max = 255, message = "username length is too long")
     private String username;
 }

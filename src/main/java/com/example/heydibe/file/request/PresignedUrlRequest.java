@@ -7,15 +7,15 @@ import lombok.Getter;
 @Getter
 public class PresignedUrlRequest {
 
-    @NotBlank(message = "folder는 필수입니다 (예: profiles, diaries)")
-    @Size(max = 50, message = "folder 길이가 너무 깁니다")
+    @NotBlank(message = "folder is required (e.g., profiles, diaries)")
+    @Size(max = 50, message = "folder length is too long")
     private String folder;
 
-    @NotBlank(message = "contentType은 필수입니다 (예: image/png)")
-    @Size(max = 100, message = "contentType 길이가 너무 깁니다")
+    @NotBlank(message = "contentType is required (e.g., image/png)")
+    @Size(max = 100, message = "contentType length is too long")
     private String contentType;
 
-    @NotBlank(message = "extension은 필수입니다 (예: png, jpg)")
-    @Size(max = 10, message = "extension 길이가 너무 깁니다")
+    @NotBlank(message = "extension is required (e.g., png, jpg)")
+    @Size(max = 10, message = "extension length is too long")
     private String extension;
 }

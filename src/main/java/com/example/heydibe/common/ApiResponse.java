@@ -13,7 +13,7 @@ public class ApiResponse<T> {
     private final T data;
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "1000", "요청 성공", data);
+        return new ApiResponse<>(true, "1000", "Request successful", data);
     }
 
     public static <T> ApiResponse<T> fail(String code, String message) {
