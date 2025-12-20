@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  session:
+    timeout: 1800 # 30분
+    cookie:
+      http-only: true
+      secure: false # localhost 개발환경에서는 false, 프로덕션 HTTPS에서는 true
+      same-site: lax # React 프론트엔드와 함께 사용시 lax 권장 (cross-origin이지만 브라우저가 허용)
+      name: JSESSIONID # 세션 쿠키 이름
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8080
+  address: 0.0.0.0
+
+# AWS S3 설정 (임시 더미 값 - 나중에 실제 값으로 교체 필요)
+aws:
+  s3:
+    bucket: test-bucket
+    region: ap-northeast-2
+    access-key: AKIAIOSFODNN7EXAMPLE
+    secret-key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    presigned:
+      expire-seconds: 3600 # 1시간
+# 애플리케이션 설정
+app:
+  default-profile-image-key: default/profile.png
+  profile-image-base-url: https://your-bucket.s3.ap-northeast-2.amazonaws.com  # 선택사항
