@@ -1,6 +1,5 @@
 package com.example.heydibe.report.domain;
 
 public class MonthlyReport {
-    // Entity ?�의 ?�정
+    // Entity 클래스 설정
 }
-

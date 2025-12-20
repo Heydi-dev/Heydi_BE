@@ -13,11 +13,10 @@ public class ApiResponse<T> {
     private final T data;
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "1000", "?旍箔 ?标车", data);
+        return new ApiResponse<>(true, "1000", "鞖旍箔 靹标车", data);
     }
 
     public static <T> ApiResponse<T> fail(String code, String message) {
         return new ApiResponse<>(false, code, message, null);
     }
 }
-

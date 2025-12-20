@@ -31,16 +31,15 @@ public class UserController {
         AuthDto auth = authService.getLoginUserFromSession(session);
         userService.withdraw(auth.getUserId());
 
-        // ?�퇴 ??즉시 로그?�웃(?�션 무효??
+        // 탈퇴 후 즉시 로그아웃(세션 무효화)
         try {
             session.invalidate();
         } catch (Exception e) {
-            // invalidate ?�패??500?�로 처리?�도�??�외�??�져????
-            // ?�기?�는 간단??BusinessException?�로 ?�기�??�으�?AuthService.logout(session) ?�출�??��?가??
+            // invalidate 실패를 500으로 처리해도 되지만 예외가 발생할 수도 있음
+            // 여기서는 간단히 BusinessException으로 처리하는 것이 좋으므로 AuthService.logout(session) 호출하는 것이 좋음
             throw e;
         }
 
         return ApiResponse.success(WithdrawResponse.from(true));
     }
 }
-

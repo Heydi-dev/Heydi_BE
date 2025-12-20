@@ -33,26 +33,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // CSRF 비활?�화 (?�션 기반 ?�증 ?�용???�요???�성??가??
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS ?�정 ?�용
-            .addFilterBefore(sessionAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class) // ?�션 ?�증 ?�터 추�?
+            .csrf(csrf -> csrf.disable()) // CSRF 비활성화 (세션 기반 인증 사용시 필요없지만 성능향상)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정 사용
+            .addFilterBefore(sessionAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class) // 세션 인증 필터 추가
             .authorizeHttpRequests(auth -> auth
-                // 공개 API (?�증 불필??
-                .requestMatchers("/files/presigned-url").permitAll() // presignedURL ?�성
-                .requestMatchers("/auth/check-username").permitAll() // ?�이??중복 ?�인
-                .requestMatchers("/user/signup").permitAll() // ?�원가??
-                .requestMatchers("/auth/login").permitAll() // 로그??
+                // 공개 API (인증 불필요)
+                .requestMatchers("/files/presigned-url").permitAll() // presignedURL 생성
+                .requestMatchers("/auth/check-username").permitAll() // 아이디 중복 확인
+                .requestMatchers("/user/signup").permitAll() // 회원가입
+                .requestMatchers("/auth/login").permitAll() // 로그인
                 
-                // ?�증 ?�수 API
-                .requestMatchers("/auth/logout").authenticated() // 로그?�웃
-                .requestMatchers("/user/withdraw").authenticated() // ?�원?�퇴
-                .requestMatchers("/profile/me").authenticated() // ?�로??조회/?�정
+                // 인증 필요 API
+                .requestMatchers("/auth/logout").authenticated() // 로그아웃
+                .requestMatchers("/user/withdraw").authenticated() // 회원탈퇴
+                .requestMatchers("/profile/me").authenticated() // 프로필 조회/수정
                 
-                // ?�머지 모든 ?�청?� ?�증 ?�요
+                // 나머지 모든 요청은 인증 필요
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // ?�션???�요???�성
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 세션이 필요시 생성
             );
 
         return http.build();
@@ -62,24 +62,24 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // allowCredentials(true)?� ?�께 ?�용?�려�?setAllowedOriginPatterns ?�용?�야 ??
-        // React ?�론?�엔??origin ?�정 (?�제 ?�론?�엔??주소�?변�??�요)
+        // allowCredentials(true)와 함께 사용하려면 setAllowedOriginPatterns 사용해야 함
+        // React 프론트엔드 origin 설정 (실제 프론트엔드 주소로 변경 필요)
         configuration.setAllowedOriginPatterns(Arrays.asList(
             "http://localhost:*",
             "http://127.0.0.1:*"
         ));
         
-        // ?�용??HTTP 메서??
+        // 허용할 HTTP 메서드
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         
-        // ?�용???�더
+        // 허용할 헤더
         configuration.setAllowedHeaders(List.of("*"));
         
-        // 쿠키 �??�증 ?�보 ?�함 ?�용 (?�션 쿠키 ?�송???�해 ?�수)
-        // React?�서 fetch/axios ?�용??credentials: 'include' ?�는 withCredentials: true ?�수
+        // 쿠키 및 인증 정보 포함 허용 (세션 쿠키 전송을 위해 필요)
+        // React에서 fetch/axios 사용시 credentials: 'include' 또는 withCredentials: true 필요
         configuration.setAllowCredentials(true);
         
-        // preflight ?�청??캐시 ?�간 (�?
+        // preflight 요청의 캐시 시간 (초)
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -88,5 +88,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
-

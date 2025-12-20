@@ -6,67 +6,67 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ErrorCode {
 
-    // ?�증 ?�패
+    // 인증 실패
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
             "401",
-            "?�증???�패?�습?�다."
+            "인증에 실패했습니다."
     ),
 
-    // ?�버 ?��? ?�류
+    // 서버 내부 오류
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "500",
-            "?�버 ?��? ?�류가 발생?�습?�다."
+            "서버 내부 오류가 발생했습니다."
     ),
 
-    // 비�?번호 불일�?
+    // 비밀번호 불일치
     PASSWORD_MISMATCH(
             HttpStatus.BAD_REQUEST,
             "4001",
-            "비�?번호가 ?�치?��? ?�습?�다."
+            "비밀번호가 일치하지 않습니다."
     ),
 
-    // ?�션 ?�류
+    // 세션 오류
     SESSION_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "500",
-            "?�션 처리 �??�류가 발생?�습?�다."
+            "세션 처리 중 오류가 발생했습니다."
     ),
 
-    // 로그???�패
+    // 로그인 실패
     LOGIN_FAILED(
             HttpStatus.UNAUTHORIZED,
             "401",
-            "로그?�에 ?�패?�습?�다."
+            "로그인에 실패했습니다."
     ),
 
-    // ??��???�용??
+    // 삭제된 사용자
     USER_DELETED(
             HttpStatus.UNAUTHORIZED,
             "401",
-            "??��???�용?�입?�다."
+            "삭제된 사용자입니다."
     ),
 
-    // ?�이??중복
+    // 아이디 중복
     USERNAME_DUPLICATED(
             HttpStatus.CONFLICT,
             "2011",
-            "?��? 존재?�는 ?�이?�입?�다."
+            "이미 존재하는 아이디입니다."
     ),
 
-    // ?��? ??��???�용??
+    // 이미 삭제된 사용자
     ALREADY_DELETED_USER(
             HttpStatus.BAD_REQUEST,
             "4001",
-            "?��? ??��???�용?�입?�다."
+            "이미 삭제된 사용자입니다."
     ),
 
-    // S3 Presigned URL ?�성 ?�패
+    // S3 Presigned URL 생성 실패
     S3_PRESIGNED_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "500",
-            "S3 Presigned URL ?�성???�패?�습?�다."
+            "S3 Presigned URL 생성에 실패했습니다."
     );
 
     private final HttpStatus httpStatus;
@@ -79,4 +79,3 @@ public enum ErrorCode {
         this.message = message;
     }
 }
-

@@ -39,19 +39,19 @@ public class ProfileService {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
 
-        // nickname 변�?
+        // nickname 변경
         if (request.getNickname() != null && !request.getNickname().isBlank()) {
             user.updateNickname(request.getNickname());
         }
 
-        // 비�?번호 변�?(?�션)
+        // 비밀번호 변경(선택)
         validatePasswordConfirm(request.getNewPassword(), request.getNewPasswordConfirm());
         String hashed = hashPasswordIfPresent(request.getNewPassword());
         if (hashed != null) {
             user.updatePasswordHash(hashed);
         }
 
-        // ?�로???��?지 ??변�?(?�션)
+        // 프로필 이미지 키 변경(선택)
         profile.updateProfileImageKey(request.getProfileImageKey());
 
         userRepository.save(user);
@@ -74,4 +74,3 @@ public class ProfileService {
         }
     }
 }
-

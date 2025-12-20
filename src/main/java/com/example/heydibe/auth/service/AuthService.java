@@ -52,7 +52,7 @@ public class AuthService {
         return (AuthDto) obj;
     }
 
-    // ----------------- ?��? 메소??-----------------
+    // ----------------- 유틸리티 메소드 ------------------
 
     public String normalizeUsername(String raw) {
         return raw == null ? null : raw.trim().toLowerCase();
@@ -90,4 +90,3 @@ public class AuthService {
         return userRepository.existsByUsernameAndDeletedAtIsNull(username);
     }
 }
-

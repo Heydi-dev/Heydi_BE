@@ -19,8 +19,8 @@ import java.util.Collections;
 import static com.example.heydibe.auth.session.SessionKeys.LOGIN_USER;
 
 /**
- * ?�션?�서 로그???�용???�보�??�어 Spring Security??SecurityContext???�정?�는 ?�터
- * ??��???�용?�의 ?�션?� 무효??처리
+ * 세션에서 로그인한 사용자 정보를 읽어 Spring Security의 SecurityContext에 설정하는 필터
+ * 삭제된 사용자의 세션을 무효화 처리
  */
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
@@ -34,7 +34,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         
-        // SecurityContext 초기??(?�전 ?�증 ?�보 ?�거)
+        // SecurityContext 초기화(이전 인증 정보 제거)
         SecurityContextHolder.clearContext();
         
         HttpSession session = request.getSession(false);
@@ -43,11 +43,11 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             Object obj = session.getAttribute(LOGIN_USER);
             
             if (obj instanceof AuthDto authDto) {
-                // ?�션???�?�된 ?�용?��? ?�제�?존재?�고 ??��?��? ?�았?��? DB?�서 ?�인
+                // 세션에 저장된 사용자가 실제로 존재하고 삭제되지 않았는지 DB에서 확인
                 boolean isValidUser = userRepository.findByIdAndDeletedAtIsNull(authDto.getUserId()).isPresent();
                 
                 if (isValidUser) {
-                    // ?�상 ?�용?�인 경우?�만 ?�증 ?�보 ?�정
+                    // 정상 사용자인 경우만 인증 정보 설정
                     Authentication authentication = new UsernamePasswordAuthenticationToken(
                         authDto.getUserId(), // principal
                         null, // credentials
@@ -56,11 +56,11 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                     
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 } else {
-                    // ?�용?��? ??��?�었거나 존재?��? ?�는 경우 ?�션 무효??
+                    // 사용자가 삭제되었거나 존재하지 않는 경우 세션 무효화
                     try {
                         session.invalidate();
                     } catch (Exception ignore) {
-                        // ?�션 무효???�패??무시 (?��? 무효?�되?�을 ???�음)
+                        // 세션 무효화 실패는 무시 (이미 무효화되었을 수 있음)
                     }
                     SecurityContextHolder.clearContext();
                 }
@@ -70,5 +70,3 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-
-

@@ -7,20 +7,19 @@ import lombok.Getter;
 @Getter
 public class SignupRequest {
 
-    @NotBlank(message = "username?� ?�수?�니??")
-    @Size(max = 255, message = "username 길이가 ?�무 깁니??")
+    @NotBlank(message = "username은 필수입니다")
+    @Size(max = 255, message = "username 길이가 너무 깁니다")
     private String username;
 
-    @NotBlank(message = "password???�수?�니??")
-    @Size(min = 8, max = 255, message = "password??8~255?�여???�니??")
+    @NotBlank(message = "password는 필수입니다")
+    @Size(min = 8, max = 255, message = "password는 8~255자여야 합니다")
     private String password;
 
-    @NotBlank(message = "nickname?� ?�수?�니??")
-    @Size(max = 50, message = "nickname 길이가 ?�무 깁니??")
+    @NotBlank(message = "nickname은 필수입니다")
+    @Size(max = 50, message = "nickname 길이가 너무 깁니다")
     private String nickname;
 
-    // presigned�??�린 S3 objectKey
-    @Size(max = 500, message = "profileImageKey 길이가 ?�무 깁니??")
+    // presigned로 업로드한 S3 objectKey
+    @Size(max = 500, message = "profileImageKey 길이가 너무 깁니다")
     private String profileImageKey;
 }
-

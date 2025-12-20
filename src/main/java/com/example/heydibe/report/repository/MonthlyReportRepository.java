@@ -1,6 +1,5 @@
 package com.example.heydibe.report.repository;
 
 public interface MonthlyReportRepository {
-    // JPA Repository ?�정
+    // JPA Repository 설정
 }
-
