@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
         String msg = e.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
-        ErrorCode ec = ErrorCode.PASSWORD_MISMATCH; // ??기존???�는 코드 ?�용
+        ErrorCode ec = ErrorCode.PASSWORD_MISMATCH; // 임시로 기존에 있는 코드 사용
         return ResponseEntity.status(ec.getHttpStatus())
                 .body(ApiResponse.fail(ec.getCode(), msg));
     }
@@ -31,9 +31,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAny(Exception e) {
-        ErrorCode ec = ErrorCode.INTERNAL_SERVER_ERROR; // ???�전??기본�?
+        ErrorCode ec = ErrorCode.INTERNAL_SERVER_ERROR; // 예외처리 기본값
         return ResponseEntity.status(ec.getHttpStatus())
                 .body(ApiResponse.fail(ec.getCode(), ec.getMessage()));
     }
 }
-
