@@ -1,5 +1,10 @@
 package com.example.heydibe.report.repository;
 
-public interface MonthlyReportRepository {
-    // JPA Repository 예정
+import com.example.heydibe.report.domain.MonthlyReport;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface MonthlyReportRepository extends JpaRepository<MonthlyReport, Long> {
+    Optional<MonthlyReport> findByUserIdAndReportYearMonth(Long userId, String reportYearMonth);
 }

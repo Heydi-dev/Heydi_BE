@@ -6,8 +6,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/reports")
+@RequestMapping("/api/reports")
 public class ReportController {
+
+    @GetMapping("/health")
+    public String health() {
+        return "ok";
+    }
 
     @GetMapping("/monthly")
     public String getAvailableMonths() {

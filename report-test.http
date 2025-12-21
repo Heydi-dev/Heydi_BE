@@ -1,0 +1,6 @@
+PUT http://127.0.0.1:8080/api/reports/1/2025-12
+Content-Type: application/json
+
+{
+  "analysisJson": "{\"emotion\":{\"joy\":0.8},\"topics\":[\"졸업작품\"],\"insights\":[\"집중력 향상\"]}"
+}
