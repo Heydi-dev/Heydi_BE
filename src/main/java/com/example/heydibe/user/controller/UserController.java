@@ -26,7 +26,7 @@ public class UserController {
         return ApiResponse.success(userService.signup(request));
     }
 
-    @PostMapping("/withdraw")
+    @DeleteMapping("/withdraw")
     public ApiResponse<WithdrawResponse> withdraw(HttpSession session) {
         AuthDto auth = authService.getLoginUserFromSession(session);
         userService.withdraw(auth.getUserId());

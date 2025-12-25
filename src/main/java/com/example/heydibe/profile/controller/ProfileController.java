@@ -25,7 +25,7 @@ public class ProfileController {
         return ApiResponse.success(profileService.getMyProfile(auth.getUserId()));
     }
 
-    @PutMapping("/me")
+    @PatchMapping("/me")
     public ApiResponse<Void> updateProfile(@Valid @RequestBody ProfileUpdateRequest request, HttpSession session) {
         AuthDto auth = authService.getLoginUserFromSession(session);
         profileService.updateProfile(auth.getUserId(), request);
