@@ -2,15 +2,16 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/heydi
     username: postgres
-    password: 비밀번호
+    password: 020729
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: none
+    show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
 
 server:
   port: 8080
