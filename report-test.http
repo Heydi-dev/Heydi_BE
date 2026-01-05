@@ -1,2 +1,11 @@
-GET http://127.0.0.1:8080/reports/monthly/2025-12/topics
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjF9.dummy
+PUT http://127.0.0.1:8080/reports/monthly/2025-12
+X-USER-ID: 1
+Content-Type: application/json
+
+{
+  "analysis": {
+    "insights": {
+      "summary": "이번 달은 바빴다"
+    }
+  }
+}

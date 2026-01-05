@@ -2,79 +2,23 @@ package com.example.heydibe.report.dto;
 
 import java.util.List;
 
-/**
- * API 명세서의 response.result 구조를 그대로 반영한 DTO 모음
- */
 public class MonthlyReportApiDto {
 
+    /* ---------- A ---------- */
     public record AvailableMonthsResult(
             List<String> availableMonths,
             String defaultYearMonth
     ) {}
 
-    public record CalendarResult(
-            String yearMonth,
-            List<CalendarEntry> entries
-    ) {}
-
+    /* ---------- B ---------- */
     public record CalendarEntry(
             String date,
             Long diaryId
     ) {}
 
-    public record InsightsResult(
+    public record CalendarResult(
             String yearMonth,
-            String summary,
-            List<String> highlights,
-            List<String> improvements,
-            String encouragement
-    ) {}
-
-    public record ActivitiesResult(
-            String yearMonth,
-            List<ActivityItem> activities
-    ) {}
-
-    public record ActivityItem(
-            String name,
-            int count,
-            int ratio
-    ) {}
-
-    public record PreferencesResult(
-            String yearMonth,
-            PreferenceBlock like,
-            PreferenceBlock dislike
-    ) {}
-
-    public record PreferenceBlock(
-            String title,
-            String keyword,
-            String description
-    ) {}
-
-    public record TopicsResult(
-            String yearMonth,
-            List<TopicItem> topics
-    ) {}
-
-    public record TopicItem(
-            String name,
-            int count,
-            double weight
-    ) {}
-
-    public record EmotionsResult(
-            String yearMonth,
-            List<WeekEmotion> weeks
-    ) {}
-
-    public record WeekEmotion(
-            int weekIndex,
-            String startDate,
-            String endDate,
-            String topEmotion,
-            int emotionRate
+            List<CalendarEntry> entries
     ) {}
 
     public record ReminderResult(
@@ -85,5 +29,71 @@ public class MonthlyReportApiDto {
             String title,
             String topic,
             String mainEmotion
+    ) {}
+
+    /* ---------- C ---------- */
+    public record InsightsResult(
+            String yearMonth,
+            String summary,
+            List<String> highlights,
+            List<String> improvements,
+            String encouragement
+    ) {}
+
+    public record ActivityItem(
+            String name,
+            int count,
+            int ratio
+    ) {}
+
+    public record ActivitiesResult(
+            String yearMonth,
+            List<ActivityItem> activities
+    ) {}
+
+    public record PreferenceBlock(
+            String title,
+            String keyword,
+            String description
+    ) {}
+
+    public record PreferencesResult(
+            String yearMonth,
+            PreferenceBlock like,
+            PreferenceBlock dislike
+    ) {}
+
+    public record TopicItem(
+            String name,
+            int count,
+            double weight
+    ) {}
+
+    public record TopicsResult(
+            String yearMonth,
+            List<TopicItem> topics
+    ) {}
+
+    public record WeekEmotion(
+            int weekIndex,
+            String startDate,
+            String endDate,
+            String topEmotion,
+            int emotionRate
+    ) {}
+
+    public record EmotionsResult(
+            String yearMonth,
+            List<WeekEmotion> weeks
+    ) {}
+
+    /* ---------- PUT ---------- */
+    // 🔥 여기 핵심 변경 포인트
+    public record MonthlyReportUpsertRequest(
+            Object analysis   // ❌ JsonNode 쓰지 말 것
+    ) {}
+
+    public record MonthlyReportUpsertResult(
+            String yearMonth
     ) {}
 }
