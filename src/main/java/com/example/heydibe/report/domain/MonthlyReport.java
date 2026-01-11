@@ -1,6 +1,9 @@
 package com.example.heydibe.report.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
 
 @Entity
@@ -21,11 +24,11 @@ public class MonthlyReport {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    // yyyy-MM
+    // 'YYYY-MM'
     @Column(name = "report_year_month", nullable = false, length = 7)
     private String reportYearMonth;
 
-    // 🔴 DB는 jsonb지만 Java에서는 String으로 유지
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "analysis_json", nullable = false, columnDefinition = "jsonb")
     private String analysisJson;
 
@@ -41,23 +44,13 @@ public class MonthlyReport {
         this.createdAt = Instant.now();
     }
 
-    public Long getReportId() {
-        return reportId;
+    public void updateAnalysisJson(String analysisJson) {
+        this.analysisJson = analysisJson;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public String getReportYearMonth() {
-        return reportYearMonth;
-    }
-
-    public String getAnalysisJson() {
-        return analysisJson;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+    public Long getReportId() { return reportId; }
+    public Long getUserId() { return userId; }
+    public String getReportYearMonth() { return reportYearMonth; }
+    public String getAnalysisJson() { return analysisJson; }
+    public Instant getCreatedAt() { return createdAt; }
 }

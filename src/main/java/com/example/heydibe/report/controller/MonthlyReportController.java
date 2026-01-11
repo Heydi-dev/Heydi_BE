@@ -15,14 +15,83 @@ public class MonthlyReportController {
     private final MonthlyReportQueryService service;
     private final AuthUserResolver authUserResolver;
 
-    public MonthlyReportController(
-            MonthlyReportQueryService service,
-            AuthUserResolver authUserResolver
-    ) {
+    public MonthlyReportController(MonthlyReportQueryService service, AuthUserResolver authUserResolver) {
         this.service = service;
         this.authUserResolver = authUserResolver;
     }
 
+    // 1) 월간 리포트 가능 월 목록
+    @GetMapping
+    public ResponseEntity<ApiResponse<AvailableMonthsResult>> getAvailableMonths(HttpServletRequest request) {
+        Long userId = authUserResolver.requireUserId(request);
+        AvailableMonthsResult result = service.getAvailableMonths(userId);
+        return ResponseEntity.ok(ApiResponse.success(1000, "월간 리포트 가능 월 목록 조회에 성공했습니다.", result));
+    }
+
+    // 2) 지난 달 리마인더
+    @GetMapping("/{yearMonth}/reminder")
+    public ResponseEntity<ApiResponse<ReminderResult>> getReminder(HttpServletRequest request,
+                                                                   @PathVariable String yearMonth) {
+        Long userId = authUserResolver.requireUserId(request);
+        ReminderResult result = service.getReminder(userId, yearMonth);
+        return ResponseEntity.ok(ApiResponse.success(1000, "지난 달 일기 리마인더를 조회했습니다.", result));
+    }
+
+    // 3) 캘린더
+    @GetMapping("/{yearMonth}/calendar")
+    public ResponseEntity<ApiResponse<CalendarResult>> getCalendar(HttpServletRequest request,
+                                                                   @PathVariable String yearMonth) {
+        Long userId = authUserResolver.requireUserId(request);
+        CalendarResult result = service.getCalendar(userId, yearMonth);
+        return ResponseEntity.ok(ApiResponse.success(1000, "캘린더 데이터를 조회했습니다.", result));
+    }
+
+    // 4) 인사이트
+    @GetMapping("/{yearMonth}/insights")
+    public ResponseEntity<ApiResponse<InsightsResult>> getInsights(HttpServletRequest request,
+                                                                   @PathVariable String yearMonth) {
+        Long userId = authUserResolver.requireUserId(request);
+        InsightsResult result = service.getInsights(userId, yearMonth);
+        return ResponseEntity.ok(ApiResponse.success(1000, "월간 인사이트 리포트 조회에 성공했습니다.", result));
+    }
+
+    // 5) 활동
+    @GetMapping("/{yearMonth}/activities")
+    public ResponseEntity<ApiResponse<ActivitiesResult>> getActivities(HttpServletRequest request,
+                                                                       @PathVariable String yearMonth) {
+        Long userId = authUserResolver.requireUserId(request);
+        ActivitiesResult result = service.getActivities(userId, yearMonth);
+        return ResponseEntity.ok(ApiResponse.success(1000, "월간 활동 리포트 조회에 성공했습니다.", result));
+    }
+
+    // 6) 선호/비선호
+    @GetMapping("/{yearMonth}/preferences")
+    public ResponseEntity<ApiResponse<PreferencesResult>> getPreferences(HttpServletRequest request,
+                                                                         @PathVariable String yearMonth) {
+        Long userId = authUserResolver.requireUserId(request);
+        PreferencesResult result = service.getPreferences(userId, yearMonth);
+        return ResponseEntity.ok(ApiResponse.success(1000, "좋아하는 것/싫어하는 것 리포트 조회에 성공했습니다.", result));
+    }
+
+    // 7) 주제
+    @GetMapping("/{yearMonth}/topics")
+    public ResponseEntity<ApiResponse<TopicsResult>> getTopics(HttpServletRequest request,
+                                                               @PathVariable String yearMonth) {
+        Long userId = authUserResolver.requireUserId(request);
+        TopicsResult result = service.getTopics(userId, yearMonth);
+        return ResponseEntity.ok(ApiResponse.success(1000, "월간 주요 주제 리포트 조회에 성공했습니다.", result));
+    }
+
+    // 8) 감정
+    @GetMapping("/{yearMonth}/emotions")
+    public ResponseEntity<ApiResponse<EmotionsResult>> getEmotions(HttpServletRequest request,
+                                                                   @PathVariable String yearMonth) {
+        Long userId = authUserResolver.requireUserId(request);
+        EmotionsResult result = service.getEmotions(userId, yearMonth);
+        return ResponseEntity.ok(ApiResponse.success(1000, "월간 감정 변화 리포트 조회에 성공했습니다.", result));
+    }
+
+    // 9) 월간 분석 저장 (analysis_json 저장)
     @PutMapping("/{yearMonth}")
     public ResponseEntity<ApiResponse<MonthlyReportUpsertResult>> upsertMonthlyReport(
             HttpServletRequest request,
@@ -30,12 +99,7 @@ public class MonthlyReportController {
             @RequestBody MonthlyReportUpsertRequest body
     ) {
         Long userId = authUserResolver.requireUserId(request);
-
-        MonthlyReportUpsertResult result =
-                service.upsertMonthlyReport(userId, yearMonth, body.analysis());
-
-        return ResponseEntity.ok(
-                ApiResponse.success(1000, "월간 리포트를 저장했습니다.", result)
-        );
+        MonthlyReportUpsertResult result = service.upsertMonthlyReport(userId, yearMonth, body.analysis());
+        return ResponseEntity.ok(ApiResponse.success(1000, "월간 리포트를 저장했습니다.", result));
     }
 }

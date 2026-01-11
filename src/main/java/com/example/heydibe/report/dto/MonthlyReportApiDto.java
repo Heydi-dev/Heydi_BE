@@ -4,23 +4,13 @@ import java.util.List;
 
 public class MonthlyReportApiDto {
 
-    /* ---------- A ---------- */
+    // GET /reports/monthly
     public record AvailableMonthsResult(
             List<String> availableMonths,
             String defaultYearMonth
     ) {}
 
-    /* ---------- B ---------- */
-    public record CalendarEntry(
-            String date,
-            Long diaryId
-    ) {}
-
-    public record CalendarResult(
-            String yearMonth,
-            List<CalendarEntry> entries
-    ) {}
-
+    // GET /{yearMonth}/reminder
     public record ReminderResult(
             String baseYearMonth,
             String sourceYearMonth,
@@ -31,7 +21,18 @@ public class MonthlyReportApiDto {
             String mainEmotion
     ) {}
 
-    /* ---------- C ---------- */
+    // GET /{yearMonth}/calendar
+    public record CalendarResult(
+            String yearMonth,
+            List<CalendarEntry> entries
+    ) {}
+
+    public record CalendarEntry(
+            String date,   // yyyy-MM-dd
+            Long diaryId
+    ) {}
+
+    // GET /{yearMonth}/insights
     public record InsightsResult(
             String yearMonth,
             String summary,
@@ -40,15 +41,23 @@ public class MonthlyReportApiDto {
             String encouragement
     ) {}
 
+    // GET /{yearMonth}/activities
+    public record ActivitiesResult(
+            String yearMonth,
+            List<ActivityItem> activities
+    ) {}
+
     public record ActivityItem(
             String name,
             int count,
             int ratio
     ) {}
 
-    public record ActivitiesResult(
+    // GET /{yearMonth}/preferences
+    public record PreferencesResult(
             String yearMonth,
-            List<ActivityItem> activities
+            PreferenceBlock like,
+            PreferenceBlock dislike
     ) {}
 
     public record PreferenceBlock(
@@ -57,10 +66,10 @@ public class MonthlyReportApiDto {
             String description
     ) {}
 
-    public record PreferencesResult(
+    // GET /{yearMonth}/topics
+    public record TopicsResult(
             String yearMonth,
-            PreferenceBlock like,
-            PreferenceBlock dislike
+            List<TopicItem> topics
     ) {}
 
     public record TopicItem(
@@ -69,9 +78,10 @@ public class MonthlyReportApiDto {
             double weight
     ) {}
 
-    public record TopicsResult(
+    // GET /{yearMonth}/emotions
+    public record EmotionsResult(
             String yearMonth,
-            List<TopicItem> topics
+            List<WeekEmotion> weeks
     ) {}
 
     public record WeekEmotion(
@@ -82,15 +92,9 @@ public class MonthlyReportApiDto {
             int emotionRate
     ) {}
 
-    public record EmotionsResult(
-            String yearMonth,
-            List<WeekEmotion> weeks
-    ) {}
-
-    /* ---------- PUT ---------- */
-    // 🔥 여기 핵심 변경 포인트
+    // PUT /{yearMonth}
     public record MonthlyReportUpsertRequest(
-            Object analysis   // ❌ JsonNode 쓰지 말 것
+            Object analysis
     ) {}
 
     public record MonthlyReportUpsertResult(
