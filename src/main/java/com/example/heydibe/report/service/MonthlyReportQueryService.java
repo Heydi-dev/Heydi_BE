@@ -8,21 +8,15 @@ import com.example.heydibe.diary.repository.DiaryTagRepository;
 import com.example.heydibe.report.domain.MonthlyReport;
 import com.example.heydibe.report.dto.MonthlyReportApiDto.*;
 import com.example.heydibe.report.repository.MonthlyReportRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-// ✅ 너 프로젝트 ObjectMapper 패키지에 맞춰 import 유지
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class MonthlyReportQueryService {
@@ -34,12 +28,10 @@ public class MonthlyReportQueryService {
     private final DiaryTagRepository diaryTagRepository;
     private final ObjectMapper objectMapper;
 
-    public MonthlyReportQueryService(
-            MonthlyReportRepository monthlyReportRepository,
-            DiaryRepository diaryRepository,
-            DiaryTagRepository diaryTagRepository,
-            ObjectMapper objectMapper
-    ) {
+    public MonthlyReportQueryService(MonthlyReportRepository monthlyReportRepository,
+                                     DiaryRepository diaryRepository,
+                                     DiaryTagRepository diaryTagRepository,
+                                     ObjectMapper objectMapper) {
         this.monthlyReportRepository = monthlyReportRepository;
         this.diaryRepository = diaryRepository;
         this.diaryTagRepository = diaryTagRepository;
@@ -47,36 +39,7 @@ public class MonthlyReportQueryService {
     }
 
     // ------------------------
-    // PUT /reports/monthly/{yearMonth}
-    // ------------------------
-    @Transactional
-    public MonthlyReportUpsertResult upsertMonthlyReport(Long userId, String yearMonth, Object analysis) {
-        YearMonth ym = parseYearMonthOrThrow(yearMonth);
-
-        try {
-            if (analysis == null) {
-                throw new ApiException(6801, "analysis_json 형식이 올바르지 않습니다.");
-            }
-
-            String jsonString = objectMapper.writeValueAsString(analysis);
-
-            MonthlyReport mr = monthlyReportRepository
-                    .findByUserIdAndReportYearMonth(userId, ym.toString())
-                    .orElseGet(() -> new MonthlyReport(userId, ym.toString(), jsonString));
-
-            mr.updateAnalysisJson(jsonString);
-            monthlyReportRepository.save(mr);
-
-            return new MonthlyReportUpsertResult(ym.toString());
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ApiException(6801, "월간 리포트를 저장하지 못했습니다.");
-        }
-    }
-
-    // ------------------------
-    // GET /reports/monthly
+    // 1) /reports/monthly
     // ------------------------
     public AvailableMonthsResult getAvailableMonths(Long userId) {
         try {
@@ -89,10 +52,170 @@ public class MonthlyReportQueryService {
     }
 
     // ------------------------
-    // GET /{yearMonth}/calendar
+    // 2) /topics
+    // ------------------------
+    public TopicsResult getTopics(Long userId, String yearMonth) {
+        YearMonth ym = parseYearMonthOrThrow(yearMonth, 6003, "월간 주제 데이터를 불러오지 못했습니다.");
+
+        try {
+            JsonNode root = readAnalysisRoot(userId, ym);
+            JsonNode topicsArr = root.path("topics");
+            if (!topicsArr.isArray() || topicsArr.isEmpty()) {
+                throw new ApiException(6003, "월간 주제 데이터를 불러오지 못했습니다.");
+            }
+
+            // topics: [{name,count,weight,description?}, ...]
+            List<JsonNode> nodes = new ArrayList<>();
+            topicsArr.forEach(nodes::add);
+
+            // 정렬: count desc 우선, 없으면 weight desc
+            nodes.sort((a, b) -> {
+                int ac = a.path("count").asInt(-1);
+                int bc = b.path("count").asInt(-1);
+                if (ac != -1 && bc != -1) return Integer.compare(bc, ac);
+                double aw = a.path("weight").asDouble(0.0);
+                double bw = b.path("weight").asDouble(0.0);
+                return Double.compare(bw, aw);
+            });
+
+            JsonNode top1Node = nodes.get(0);
+            String top1Name = top1Node.path("name").asText(null);
+            if (top1Name == null || top1Name.isBlank()) {
+                throw new ApiException(6003, "월간 주제 데이터를 불러오지 못했습니다.");
+            }
+
+            int ratio = computeRatioPercent(nodes, top1Node);
+            String desc = textOrEmpty(top1Node, "description");
+
+            TopicsResult.Top1 top1 = new TopicsResult.Top1(top1Name, ratio, desc);
+
+            List<String> top2to4 = nodes.stream()
+                    .skip(1)
+                    .limit(3)
+                    .map(n -> n.path("name").asText(""))
+                    .filter(s -> !s.isBlank())
+                    .collect(Collectors.toList());
+
+            return new TopicsResult(ym.toString(), top1, top2to4);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(6003, "월간 주제 데이터를 불러오지 못했습니다.");
+        }
+    }
+
+    // ------------------------
+    // 3) /preferences
+    // ------------------------
+    public PreferencesResult getPreferences(Long userId, String yearMonth) {
+        YearMonth ym = parseYearMonthOrThrow(yearMonth, 6004, "좋아하는 것/싫어하는 것 리포트를 불러오지 못했습니다.");
+
+        try {
+            JsonNode root = readAnalysisRoot(userId, ym);
+            JsonNode pref = root.path("preferences");
+            if (pref.isMissingNode() || pref.isNull()) {
+                throw new ApiException(6004, "좋아하는 것/싫어하는 것 리포트를 불러오지 못했습니다.");
+            }
+
+            // 저장 형태가 둘 중 하나일 수 있어서 둘 다 지원:
+            // A) preferences.like.keyword / preferences.dislike.keyword
+            // B) preferences.like / preferences.dislike (string)
+            String like = extractPreference(pref.path("like"));
+            String dislike = extractPreference(pref.path("dislike"));
+
+            if ((like == null || like.isBlank()) && (dislike == null || dislike.isBlank())) {
+                throw new ApiException(6004, "좋아하는 것/싫어하는 것 리포트를 불러오지 못했습니다.");
+            }
+
+            return new PreferencesResult(ym.toString(), nullIfBlank(like), nullIfBlank(dislike));
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(6004, "좋아하는 것/싫어하는 것 리포트를 불러오지 못했습니다.");
+        }
+    }
+
+    // ------------------------
+    // 4) /activities (summary 텍스트)
+    // ------------------------
+    public ActivitiesResult getActivities(Long userId, String yearMonth) {
+        YearMonth ym = parseYearMonthOrThrow(yearMonth, 6005, "월간 활동 데이터를 불러오지 못했습니다.");
+
+        try {
+            JsonNode root = readAnalysisRoot(userId, ym);
+
+            // 우선순위:
+            // A) root.activitiesSummary (string)
+            // B) root.activities.summary (string)
+            // C) root.activities (array) -> top activity 기반 간단 문장 생성
+            String summary = nullIfBlank(root.path("activitiesSummary").asText(null));
+            if (summary == null) {
+                JsonNode activitiesNode = root.path("activities");
+                if (activitiesNode.isObject()) {
+                    summary = nullIfBlank(activitiesNode.path("summary").asText(null));
+                } else if (activitiesNode.isArray() && activitiesNode.size() > 0) {
+                    JsonNode first = activitiesNode.get(0);
+                    String name = first.path("name").asText("");
+                    int count = first.path("count").asInt(0);
+                    if (!name.isBlank()) {
+                        summary = "이번 달에는 " + name + " 활동을 많이 했어요. (총 " + count + "회)";
+                    }
+                }
+            }
+
+            if (summary == null) {
+                throw new ApiException(6005, "월간 활동 데이터를 불러오지 못했습니다.");
+            }
+
+            return new ActivitiesResult(ym.toString(), summary);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(6005, "월간 활동 데이터를 불러오지 못했습니다.");
+        }
+    }
+
+    // ------------------------
+    // 5) /insights (insight 텍스트)
+    // ------------------------
+    public InsightsResult getInsights(Long userId, String yearMonth) {
+        YearMonth ym = parseYearMonthOrThrow(yearMonth, 6006, "월간 인사이트를 불러오지 못했습니다.");
+
+        try {
+            JsonNode root = readAnalysisRoot(userId, ym);
+
+            // 우선순위:
+            // A) root.insight (string)
+            // B) root.insights.insight (string)
+            // C) root.insights.summary (string)
+            String insight = nullIfBlank(root.path("insight").asText(null));
+            if (insight == null) {
+                JsonNode insightsNode = root.path("insights");
+                if (insightsNode.isObject()) {
+                    insight = nullIfBlank(insightsNode.path("insight").asText(null));
+                    if (insight == null) {
+                        insight = nullIfBlank(insightsNode.path("summary").asText(null));
+                    }
+                }
+            }
+
+            if (insight == null) {
+                throw new ApiException(6006, "월간 인사이트를 불러오지 못했습니다.");
+            }
+
+            return new InsightsResult(ym.toString(), insight);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(6006, "월간 인사이트를 불러오지 못했습니다.");
+        }
+    }
+
+    // ------------------------
+    // 6) /calendar
     // ------------------------
     public CalendarResult getCalendar(Long userId, String yearMonth) {
-        YearMonth ym = parseYearMonthOrThrow(yearMonth);
+        YearMonth ym = parseYearMonthOrThrow(yearMonth, 6007, "캘린더 데이터를 불러오지 못했습니다.");
 
         try {
             Instant start = startOfMonth(ym);
@@ -100,218 +223,65 @@ public class MonthlyReportQueryService {
 
             List<Diary> diaries = diaryRepository.findDiariesInRange(userId, start, end);
 
-            List<CalendarEntry> entries = diaries.stream()
-                    .map(d -> new CalendarEntry(
+            List<CalendarResult.CalendarEntry> entries = diaries.stream()
+                    .map(d -> new CalendarResult.CalendarEntry(
                             DATE_FMT.format(d.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate()),
                             d.getDiaryId()
                     ))
                     .toList();
 
-            return new CalendarResult(yearMonth, entries);
+            return new CalendarResult(entries);
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
-            throw new ApiException(6601, "캘린더 데이터를 불러오지 못했습니다.");
+            throw new ApiException(6007, "캘린더 데이터를 불러오지 못했습니다.");
         }
     }
 
     // ------------------------
-    // GET /{yearMonth}/reminder
+    // 7) /reminder
     // ------------------------
     public ReminderResult getReminder(Long userId, String baseYearMonth) {
-        YearMonth base = parseYearMonthOrThrow(baseYearMonth);
+        YearMonth base = parseYearMonthOrThrow(baseYearMonth, 6008, "리마인더 데이터를 불러오지 못했습니다.");
         YearMonth source = base.minusMonths(1);
 
-        Instant start = startOfMonth(source);
-        Instant end = startOfMonth(source.plusMonths(1));
-
-        Diary diary = diaryRepository.findLatestDiaryInRange(userId, start, end)
-                .orElseThrow(() -> new ApiException(6701, "지난 달에 작성된 일기가 없습니다."));
-
-        String date = DATE_FMT.format(diary.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate());
-
-        String topic = diaryTagRepository.findFirstTopicTag(diary.getDiaryId())
-                .map(DiaryTag::getTagName)
-                .orElse(null);
-
-        return new ReminderResult(
-                baseYearMonth,
-                source.toString(),
-                diary.getDiaryId(),
-                date,
-                diary.getTitle(),
-                topic,
-                diary.getMainEmotion()
-        );
-    }
-
-    // ------------------------
-    // C) analysis_json 기반 조회들
-    // ------------------------
-    public InsightsResult getInsights(Long userId, String yearMonth) {
-        YearMonth ym = parseYearMonthOrThrow(yearMonth);
-
         try {
-            JsonNode root = readAnalysisRoot(userId, ym);
-            JsonNode node = root.path("insights");
-            if (node.isMissingNode() || node.isNull()) {
-                throw new ApiException(6501, "인사이트 리포트를 생성하지 못했습니다.");
-            }
+            Instant start = startOfMonth(source);
+            Instant end = startOfMonth(source.plusMonths(1));
 
-            String summary = textOrNull(node, "summary");
-            List<String> highlights = stringArrayOrEmpty(node.path("highlights"));
-            List<String> improvements = stringArrayOrEmpty(node.path("improvements"));
-            String encouragement = textOrNull(node, "encouragement");
+            Diary diary = diaryRepository.findLatestDiaryInRange(userId, start, end)
+                    .orElseThrow(() -> new ApiException(6008, "리마인더 데이터를 불러오지 못했습니다."));
 
-            if (summary == null && highlights.isEmpty() && improvements.isEmpty() && encouragement == null) {
-                throw new ApiException(6501, "인사이트 리포트를 생성하지 못했습니다.");
-            }
+            String date = DATE_FMT.format(diary.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate());
 
-            return new InsightsResult(yearMonth, summary, highlights, improvements, encouragement);
+            String topic = diaryTagRepository.findFirstTopicTag(diary.getDiaryId())
+                    .map(DiaryTag::getTagName)
+                    .orElse(null);
+
+            return new ReminderResult(
+                    base.toString(),
+                    source.toString(),
+                    diary.getDiaryId(),
+                    date,
+                    diary.getTitle(),
+                    topic,
+                    diary.getMainEmotion()
+            );
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
-            throw new ApiException(6501, "인사이트 리포트를 생성하지 못했습니다.");
-        }
-    }
-
-    public ActivitiesResult getActivities(Long userId, String yearMonth) {
-        YearMonth ym = parseYearMonthOrThrow(yearMonth);
-
-        try {
-            JsonNode root = readAnalysisRoot(userId, ym);
-            JsonNode arr = root.path("activities");
-            if (!arr.isArray()) {
-                throw new ApiException(6401, "활동 리포트를 불러올 수 없습니다.");
-            }
-
-            List<ActivityItem> items = streamArray(arr)
-                    .map(n -> new ActivityItem(
-                            n.path("name").asText(""),
-                            n.path("count").asInt(0),
-                            n.path("ratio").asInt(0)
-                    ))
-                    .filter(it -> it.name() != null && !it.name().isBlank())
-                    .toList();
-
-            if (items.isEmpty()) {
-                throw new ApiException(6401, "활동 리포트를 불러올 수 없습니다.");
-            }
-
-            return new ActivitiesResult(yearMonth, items);
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ApiException(6401, "활동 리포트를 불러올 수 없습니다.");
-        }
-    }
-
-    public PreferencesResult getPreferences(Long userId, String yearMonth) {
-        YearMonth ym = parseYearMonthOrThrow(yearMonth);
-
-        try {
-            JsonNode root = readAnalysisRoot(userId, ym);
-            JsonNode node = root.path("preferences");
-            if (node.isMissingNode() || node.isNull()) {
-                throw new ApiException(6301, "선호/비선호 리포트를 생성할 수 없습니다.");
-            }
-
-            JsonNode likeNode = node.path("like");
-            JsonNode dislikeNode = node.path("dislike");
-
-            String likeKeyword = textOrNull(likeNode, "keyword");
-            String likeDesc = textOrNull(likeNode, "description");
-
-            String dislikeKeyword = textOrNull(dislikeNode, "keyword");
-            String dislikeDesc = textOrNull(dislikeNode, "description");
-
-            if (likeKeyword == null && dislikeKeyword == null) {
-                throw new ApiException(6301, "선호/비선호 리포트를 생성할 수 없습니다.");
-            }
-
-            PreferenceBlock like = new PreferenceBlock("좋아하는 것", likeKeyword, likeDesc);
-            PreferenceBlock dislike = new PreferenceBlock("싫어하는 것", dislikeKeyword, dislikeDesc);
-
-            return new PreferencesResult(yearMonth, like, dislike);
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ApiException(6301, "선호/비선호 리포트를 생성할 수 없습니다.");
-        }
-    }
-
-    public TopicsResult getTopics(Long userId, String yearMonth) {
-        YearMonth ym = parseYearMonthOrThrow(yearMonth);
-
-        try {
-            JsonNode root = readAnalysisRoot(userId, ym);
-            JsonNode arr = root.path("topics");
-            if (!arr.isArray()) {
-                throw new ApiException(6201, "해당 월의 주제 리포트를 불러올 수 없습니다.");
-            }
-
-            List<TopicItem> items = streamArray(arr)
-                    .map(n -> new TopicItem(
-                            n.path("name").asText(""),
-                            n.path("count").asInt(0),
-                            n.path("weight").asDouble(0.0)
-                    ))
-                    .filter(it -> it.name() != null && !it.name().isBlank())
-                    .toList();
-
-            if (items.isEmpty()) {
-                throw new ApiException(6201, "해당 월의 주제 리포트를 불러올 수 없습니다.");
-            }
-
-            return new TopicsResult(yearMonth, items);
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ApiException(6201, "해당 월의 주제 리포트를 불러올 수 없습니다.");
-        }
-    }
-
-    public EmotionsResult getEmotions(Long userId, String yearMonth) {
-        YearMonth ym = parseYearMonthOrThrow(yearMonth);
-
-        try {
-            JsonNode root = readAnalysisRoot(userId, ym);
-            JsonNode arr = root.path("emotions");
-            if (!arr.isArray()) {
-                throw new ApiException(6101, "해당 월의 감정 리포트가 존재하지 않습니다.");
-            }
-
-            List<WeekEmotion> weeks = streamArray(arr)
-                    .map(n -> new WeekEmotion(
-                            n.path("weekIndex").asInt(0),
-                            n.path("startDate").asText(null),
-                            n.path("endDate").asText(null),
-                            n.path("topEmotion").asText(null),
-                            n.path("emotionRate").asInt(0)
-                    ))
-                    .filter(w -> w.weekIndex() > 0 && w.startDate() != null && w.endDate() != null)
-                    .toList();
-
-            if (weeks.isEmpty()) {
-                throw new ApiException(6101, "해당 월의 감정 리포트가 존재하지 않습니다.");
-            }
-
-            return new EmotionsResult(yearMonth, weeks);
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ApiException(6101, "해당 월의 감정 리포트가 존재하지 않습니다.");
+            throw new ApiException(6008, "리마인더 데이터를 불러오지 못했습니다.");
         }
     }
 
     // ------------------------
     // 내부 헬퍼
     // ------------------------
-    private YearMonth parseYearMonthOrThrow(String yearMonth) {
+    private YearMonth parseYearMonthOrThrow(String yearMonth, int code, String msg) {
         try {
             return YearMonth.parse(yearMonth);
         } catch (Exception e) {
-            throw new ApiException(4000, "yearMonth 형식이 올바르지 않습니다. (예: 2025-04)");
+            throw new ApiException(code, msg);
         }
     }
 
@@ -320,7 +290,7 @@ public class MonthlyReportQueryService {
         return ldt.atZone(ZoneId.systemDefault()).toInstant();
     }
 
-    private JsonNode readAnalysisRoot(Long userId, YearMonth ym) throws Exception {
+    private JsonNode readAnalysisRoot(Long userId, YearMonth ym) throws JsonProcessingException {
         String yearMonth = ym.toString();
 
         MonthlyReport mr = monthlyReportRepository.findByUserIdAndReportYearMonth(userId, yearMonth)
@@ -333,25 +303,47 @@ public class MonthlyReportQueryService {
         return objectMapper.readTree(json);
     }
 
-    private String textOrNull(JsonNode node, String field) {
-        if (node == null || node.isMissingNode() || node.isNull()) return null;
+    private String extractPreference(JsonNode likeOrDislikeNode) {
+        if (likeOrDislikeNode == null || likeOrDislikeNode.isMissingNode() || likeOrDislikeNode.isNull()) {
+            return null;
+        }
+        if (likeOrDislikeNode.isTextual()) {
+            return nullIfBlank(likeOrDislikeNode.asText(null));
+        }
+        // object 형태면 keyword 우선
+        String keyword = nullIfBlank(likeOrDislikeNode.path("keyword").asText(null));
+        if (keyword != null) return keyword;
+        // fallback
+        return nullIfBlank(likeOrDislikeNode.path("description").asText(null));
+    }
+
+    private int computeRatioPercent(List<JsonNode> all, JsonNode top1) {
+        // count 기반 비율이 있으면 그걸로
+        boolean hasCount = all.stream().anyMatch(n -> n.path("count").isNumber());
+        if (hasCount) {
+            int total = all.stream().mapToInt(n -> n.path("count").asInt(0)).sum();
+            int c1 = top1.path("count").asInt(0);
+            if (total <= 0) return 0;
+            return (int) Math.round((c1 * 100.0) / total);
+        }
+
+        // weight 기반
+        double totalW = all.stream().mapToDouble(n -> n.path("weight").asDouble(0.0)).sum();
+        double w1 = top1.path("weight").asDouble(0.0);
+        if (totalW <= 0.0) return 0;
+        return (int) Math.round((w1 * 100.0) / totalW);
+    }
+
+    private String textOrEmpty(JsonNode node, String field) {
+        if (node == null) return "";
         JsonNode v = node.path(field);
-        if (v.isMissingNode() || v.isNull()) return null;
-        String s = v.asText();
-        return (s == null || s.isBlank()) ? null : s;
+        if (v.isMissingNode() || v.isNull()) return "";
+        String s = v.asText("");
+        return s == null ? "" : s;
     }
 
-    private List<String> stringArrayOrEmpty(JsonNode arr) {
-        if (arr == null || !arr.isArray()) return List.of();
-        return streamArray(arr)
-                .map(JsonNode::asText)
-                .filter(s -> s != null && !s.isBlank())
-                .toList();
-    }
-
-    private Stream<JsonNode> streamArray(JsonNode arr) {
-        Iterator<JsonNode> it = arr.elements();
-        Spliterator<JsonNode> sp = Spliterators.spliteratorUnknownSize(it, 0);
-        return StreamSupport.stream(sp, false);
+    private String nullIfBlank(String s) {
+        if (s == null) return null;
+        return s.isBlank() ? null : s;
     }
 }

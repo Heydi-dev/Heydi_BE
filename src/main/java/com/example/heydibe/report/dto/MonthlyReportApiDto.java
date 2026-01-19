@@ -4,13 +4,69 @@ import java.util.List;
 
 public class MonthlyReportApiDto {
 
+    // ------------------------
     // GET /reports/monthly
+    // ------------------------
     public record AvailableMonthsResult(
             List<String> availableMonths,
             String defaultYearMonth
     ) {}
 
-    // GET /{yearMonth}/reminder
+    // ------------------------
+    // GET /reports/monthly/{yearMonth}/topics
+    // ------------------------
+    public record TopicsResult(
+            String yearMonth,
+            Top1 top1,
+            List<String> top2to4
+    ) {
+        public record Top1(
+                String name,
+                int ratio,
+                String description
+        ) {}
+    }
+
+    // ------------------------
+    // GET /reports/monthly/{yearMonth}/preferences
+    // ------------------------
+    public record PreferencesResult(
+            String yearMonth,
+            String like,
+            String dislike
+    ) {}
+
+    // ------------------------
+    // GET /reports/monthly/{yearMonth}/activities
+    // ------------------------
+    public record ActivitiesResult(
+            String yearMonth,
+            String summary
+    ) {}
+
+    // ------------------------
+    // GET /reports/monthly/{yearMonth}/insights
+    // ------------------------
+    public record InsightsResult(
+            String yearMonth,
+            String insight
+    ) {}
+
+    // ------------------------
+    // GET /reports/monthly/{yearMonth}/calendar
+    // ------------------------
+    public record CalendarResult(
+            List<CalendarEntry> entries
+    ) {
+        public record CalendarEntry(
+                String date,
+                Long diaryId
+        ) {}
+    }
+
+    // ------------------------
+    // GET /reports/monthly/{yearMonth}/reminder
+    // ------------------------
     public record ReminderResult(
             String baseYearMonth,
             String sourceYearMonth,
@@ -18,86 +74,6 @@ public class MonthlyReportApiDto {
             String date,
             String title,
             String topic,
-            String mainEmotion
-    ) {}
-
-    // GET /{yearMonth}/calendar
-    public record CalendarResult(
-            String yearMonth,
-            List<CalendarEntry> entries
-    ) {}
-
-    public record CalendarEntry(
-            String date,   // yyyy-MM-dd
-            Long diaryId
-    ) {}
-
-    // GET /{yearMonth}/insights
-    public record InsightsResult(
-            String yearMonth,
-            String summary,
-            List<String> highlights,
-            List<String> improvements,
-            String encouragement
-    ) {}
-
-    // GET /{yearMonth}/activities
-    public record ActivitiesResult(
-            String yearMonth,
-            List<ActivityItem> activities
-    ) {}
-
-    public record ActivityItem(
-            String name,
-            int count,
-            int ratio
-    ) {}
-
-    // GET /{yearMonth}/preferences
-    public record PreferencesResult(
-            String yearMonth,
-            PreferenceBlock like,
-            PreferenceBlock dislike
-    ) {}
-
-    public record PreferenceBlock(
-            String title,
-            String keyword,
-            String description
-    ) {}
-
-    // GET /{yearMonth}/topics
-    public record TopicsResult(
-            String yearMonth,
-            List<TopicItem> topics
-    ) {}
-
-    public record TopicItem(
-            String name,
-            int count,
-            double weight
-    ) {}
-
-    // GET /{yearMonth}/emotions
-    public record EmotionsResult(
-            String yearMonth,
-            List<WeekEmotion> weeks
-    ) {}
-
-    public record WeekEmotion(
-            int weekIndex,
-            String startDate,
-            String endDate,
-            String topEmotion,
-            int emotionRate
-    ) {}
-
-    // PUT /{yearMonth}
-    public record MonthlyReportUpsertRequest(
-            Object analysis
-    ) {}
-
-    public record MonthlyReportUpsertResult(
-            String yearMonth
+            String emotion
     ) {}
 }
