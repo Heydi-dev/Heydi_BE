@@ -2,10 +2,8 @@ package com.example.heydibe.infrastructure.oauth;
 
 import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.common.error.ErrorCode;
-import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.user.entity.User;
 import com.example.heydibe.user.repository.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -21,7 +19,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
 
@@ -35,7 +32,6 @@ import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
-    private final ObjectMapper objectMapper;
 
     @Value("${app.frontend.base-url:http://localhost:3000}")
     private String frontendBaseUrl;
@@ -72,26 +68,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             session.setAttribute(LOGIN_USER, userId);
 
             log.info("OAuth2 로그인 성공 - userId: {}, username: {}", userId, user.getUsername());
-
-            // Postman이나 API 클라이언트에서 요청한 경우 JSON 응답 반환
-            String acceptHeader = request.getHeader("Accept");
-            if (acceptHeader != null && acceptHeader.contains("application/json")) {
-                response.setContentType("application/json;charset=UTF-8");
-                response.setStatus(HttpServletResponse.SC_OK);
-                
-                ApiResponse<Map<String, Object>> apiResponse = ApiResponse.success(
-                    "OAuth2 로그인 성공",
-                    Map.of(
-                        "userId", userId,
-                        "username", user.getUsername(),
-                        "nickname", user.getNickname(),
-                        "sessionId", session.getId()
-                    )
-                );
-                
-                objectMapper.writeValue(response.getWriter(), apiResponse);
-                return;
-            }
 
             // 프론트엔드로 리다이렉트 (사용자 정보를 쿼리 파라미터로 전달)
             String redirectUrl = UriComponentsBuilder
