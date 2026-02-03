@@ -129,7 +129,6 @@ public class AuthService {
         String profileImageUrl = s3Service.uploadProfileImage(profileImage);
 
         // 패스워드 암호화 (BCrypt)
-        // 패스워드 암호화 (BCrypt)
         String passwordHash = passwordEncoder.encode(password);
 
         // User 엔티티 생성

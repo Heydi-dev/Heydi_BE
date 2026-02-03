@@ -134,20 +134,26 @@ public class SecurityConfig {
 
     /**
      * CORS 설정
+     * allowCredentials(true)와 함께 사용할 때는 와일드카드 패턴이 제대로 작동해야 함
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
+        // 포트 변경에 대응하기 위해 와일드카드 패턴 사용
+        // allowCredentials(true)와 함께 사용 가능
         configuration.setAllowedOriginPatterns(Arrays.asList(
             "http://localhost:*",
-            "http://127.0.0.1:*"
+            "http://127.0.0.1:*",
+            "https://localhost:*",
+            "https://127.0.0.1:*"
         ));
         configuration.setAllowedMethods(
             Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         );
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(Arrays.asList("Set-Cookie", "Cookie")); // 세션 쿠키 노출
+        configuration.setAllowCredentials(true); // 세션 쿠키 전송을 위해 필수
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =

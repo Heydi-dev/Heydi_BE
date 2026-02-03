@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
-    password: YOUR_DB_PASSWORD
+    password: 123456
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -32,6 +32,7 @@ spring:
     oauth2:
       client:
         registration:
+        # 구글 아이디 및 시크릿 키
           google:
             client-id: YOUR_GOOGLE_CLIENT_ID
             client-secret: YOUR_GOOGLE_CLIENT_SECRET
@@ -39,7 +40,7 @@ spring:
             scope:
               - email
               - profile
-
+        # 카카오 아이디 및 시크릿 키
           kakao:
             client-id: YOUR_KAKAO_CLIENT_ID
             client-secret: YOUR_KAKAO_CLIENT_SECRET
@@ -72,10 +73,8 @@ aws:
       expire-seconds: 3600
 
 app:
-  default-profile-image-key: default-profiile.png
-  profile-image-base-url: https://YOUR_BUCKET.s3.ap-southeast-2.amazonaws.com
   frontend:
-    base-url: http://localhost:3000
+    base-url: http://localhost:5173
     oauth:
       success-redirect: /login/success
       failure-redirect: /login/failure

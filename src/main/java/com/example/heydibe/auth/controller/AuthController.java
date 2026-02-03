@@ -38,7 +38,7 @@ public class AuthController {
             @Valid @ModelAttribute SignUpRequest request,
             @RequestParam(value = "profileImage", required = false) MultipartFile profileImage,
             HttpSession session) {
-        return ApiResponse.success("회원가입 성공공", authService.signup(request, profileImage));
+        return ApiResponse.success("회원가입 성공", authService.signup(request, profileImage));
     }
 
     @DeleteMapping("/withdraw")
