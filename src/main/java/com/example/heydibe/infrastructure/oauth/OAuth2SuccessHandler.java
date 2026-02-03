@@ -14,17 +14,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
 
 /**
  * OAuth2 인증 성공 후 세션을 설정하고 프론트엔드로 리다이렉트하는 핸들러
  * 인프라 레이어: Spring Security와의 통합 담당
+ * 
+ * 플로우:
+ * 1. OAuth2 인증 성공 → 세션에 userId 저장
+ * 2. 프론트엔드로 리다이렉트
+ * 3. 프론트엔드에서 /api/auth/me 호출하여 사용자 정보 조회
  */
 @Slf4j
 @Component
@@ -33,7 +35,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
 
-    @Value("${app.frontend.base-url:http://localhost:3000}")
+    @Value("${app.frontend.base-url:http://localhost:5173}")
     private String frontendBaseUrl;
 
     @Value("${app.frontend.oauth.success-redirect:/login/success}")
@@ -47,16 +49,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         try {
             OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-
-            // CustomOAuth2UserService에서 설정한 userId 속성 가져오기
             Long userId = (Long) oAuth2User.getAttribute("userId");
 
             if (userId == null) {
                 log.error("OAuth2 인증 성공했지만 userId가 null입니다.");
-                throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+                redirectToError(response, "USER_ID_NOT_FOUND");
+                return;
             }
 
-            // DB에서 사용자 정보 조회
             User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                     .orElseThrow(() -> {
                         log.error("OAuth2 인증 성공했지만 사용자를 찾을 수 없습니다. userId: {}", userId);
@@ -67,22 +67,24 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             HttpSession session = request.getSession();
             session.setAttribute(LOGIN_USER, userId);
 
-            log.info("OAuth2 로그인 성공 - userId: {}, username: {}", userId, user.getUsername());
+            log.info("OAuth2 로그인 성공 - userId: {}, username: {}, sessionId: {}", 
+                     userId, user.getUsername(), session.getId());
 
-            // 프론트엔드로 리다이렉트 (사용자 정보를 쿼리 파라미터로 전달)
-            String redirectUrl = UriComponentsBuilder
-                    .fromUriString(frontendBaseUrl + successRedirectPath)
-                    .queryParam("userId", userId)
-                    .queryParam("username", URLEncoder.encode(user.getUsername(), StandardCharsets.UTF_8))
-                    .queryParam("nickname", URLEncoder.encode(user.getNickname(), StandardCharsets.UTF_8))
-                    .toUriString();
-
-            log.info("OAuth2 리다이렉트 URL: {}", redirectUrl);
+            // 프론트엔드로 리다이렉트 (프론트에서 /api/auth/me 호출하도록)
+            String redirectUrl = frontendBaseUrl + successRedirectPath;
             response.sendRedirect(redirectUrl);
 
+        } catch (CustomException e) {
+            log.error("OAuth2 인증 실패: {}", e.getErrorCode(), e);
+            redirectToError(response, e.getErrorCode().name());
         } catch (Exception e) {
-            log.error("OAuth2 인증 성공 처리 중 오류 발생", e);
-            throw e;
+            log.error("OAuth2 인증 처리 중 예상치 못한 오류", e);
+            redirectToError(response, "INTERNAL_SERVER_ERROR");
         }
+    }
+
+    private void redirectToError(HttpServletResponse response, String errorCode) throws IOException {
+        String errorUrl = String.format("%s/login?error=%s", frontendBaseUrl, errorCode);
+        response.sendRedirect(errorUrl);
     }
 }
