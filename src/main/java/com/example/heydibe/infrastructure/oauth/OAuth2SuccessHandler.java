@@ -1,3 +1,4 @@
+
 package com.example.heydibe.infrastructure.oauth;
 
 import com.example.heydibe.common.exception.CustomException;
@@ -20,10 +21,12 @@ import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.net.URI;
 
 import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
 
@@ -82,7 +85,16 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             log.info("OAuth2 로그인 성공 - userId: {}, username: {}, sessionId: {}", 
                      userId, user.getUsername(), session.getId());
 
-            String redirectUrl = frontendBaseUrl + successRedirectPath;
+            URI baseUri = URI.create(frontendBaseUrl);
+
+            String redirectUrl = UriComponentsBuilder.newInstance()
+                    .scheme(baseUri.getScheme())
+                    .host(baseUri.getHost())
+                    .port(baseUri.getPort())
+                    .path(successRedirectPath)
+                    .build()
+                    .toUriString();
+
             response.sendRedirect(redirectUrl);
 
         } catch (CustomException e) {
@@ -95,7 +107,17 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     }
 
     private void redirectToError(HttpServletResponse response, String errorCode) throws IOException {
-        String errorUrl = String.format("%s/login?error=%s", frontendBaseUrl, errorCode);
+        URI baseUri = URI.create(frontendBaseUrl);
+
+        String errorUrl = UriComponentsBuilder.newInstance()
+                .scheme(baseUri.getScheme())
+                .host(baseUri.getHost())
+                .port(baseUri.getPort())
+                .path("/login")
+                .queryParam("error", errorCode)
+                .build()
+                .toUriString();
+
         response.sendRedirect(errorUrl);
     }
 
