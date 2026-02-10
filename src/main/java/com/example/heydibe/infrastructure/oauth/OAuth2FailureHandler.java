@@ -1,3 +1,4 @@
+
 package com.example.heydibe.infrastructure.oauth;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.net.URI;
 
 /**
  * OAuth2 인증 실패 시 프론트엔드로 리다이렉트하는 핸들러
@@ -18,7 +20,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2FailureHandler implements AuthenticationFailureHandler {
 
-    @Value("${app.frontend.base-url:http://localhost:3000}")
+    @Value("${app.frontend.base-url:http://localhost:5173}")
     private String frontendBaseUrl;
 
     @Value("${app.frontend.oauth.failure-redirect:/login/failure}")
@@ -30,11 +32,16 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
             HttpServletResponse response,
             AuthenticationException exception) throws IOException {
 
-        // 프론트엔드로 리다이렉트 (에러 메시지를 쿼리 파라미터로 전달)
-        String redirectUrl = UriComponentsBuilder
-                .fromUriString(frontendBaseUrl + failureRedirectPath)
+        URI baseUri = URI.create(frontendBaseUrl);
+
+        String redirectUrl = UriComponentsBuilder.newInstance()
+                .scheme(baseUri.getScheme())
+                .host(baseUri.getHost())
+                .port(baseUri.getPort())
+                .path(failureRedirectPath)
                 .queryParam("error", "oauth_authentication_failed")
                 .queryParam("message", exception.getMessage() != null ? exception.getMessage() : "OAuth 인증에 실패했습니다.")
+                .build()
                 .toUriString();
 
         response.sendRedirect(redirectUrl);
