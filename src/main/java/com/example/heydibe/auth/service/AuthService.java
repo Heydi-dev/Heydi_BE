@@ -11,11 +11,9 @@ import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.common.error.ErrorCode;
 import com.example.heydibe.infrastructure.s3.S3Service;
 import com.example.heydibe.user.entity.DeviceToken;
-import com.example.heydibe.user.entity.SocialAccount;
 import com.example.heydibe.user.entity.User;
 import com.example.heydibe.user.entity.UserProfile;
 import com.example.heydibe.user.repository.DeviceTokenRepository;
-import com.example.heydibe.user.repository.SocialAccountRepository;
 import com.example.heydibe.user.repository.UserProfileRepository;
 import com.example.heydibe.user.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
@@ -26,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
@@ -38,9 +35,9 @@ public class AuthService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final DeviceTokenRepository deviceTokenRepository;
-    private final SocialAccountRepository socialAccountRepository;
     private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
+    private final WithdrawService withdrawService;
 
     public LoginResponse login(LoginRequest request, HttpSession session) {
         // 입력값 검증
@@ -129,6 +126,7 @@ public class AuthService {
         String profileImageUrl = s3Service.uploadProfileImage(profileImage);
 
         // 패스워드 암호화 (BCrypt)
+        // 패스워드 암호화 (BCrypt)
         String passwordHash = passwordEncoder.encode(password);
 
         // User 엔티티 생성
@@ -164,31 +162,7 @@ public class AuthService {
 
         // 세션에서 user id 추출
         Long userId = getUserIdFromSession(session);
-
-        // 유저 존재여부 확인 (탈퇴한 사용자 제외)
-        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
-
-        // 연관데이터 정리
-        UserProfile userProfile = userProfileRepository.findByUserId(userId).orElse(null);
-        if (userProfile != null) {
-            // S3에 저장된 데이터 삭제
-            s3Service.deleteProfileImage(userProfile.getProfileImageUrl());
-            userProfileRepository.delete(userProfile);
-        }
-
-        // device_token 테이블에서 해당 user의 모든 토큰 삭제
-        deviceTokenRepository.deleteAllByUserId(userId);
-
-        // 소셜 계정이 있으면 삭제 (소셜 로그인 사용자인 경우)
-        // 자체 로그인 사용자는 소셜 계정이 없으므로 삭제 안 됨
-        List<SocialAccount> socialAccounts = socialAccountRepository.findByUserId(userId);
-        if (!socialAccounts.isEmpty()) {
-            socialAccountRepository.deleteAllByUserId(userId);
-        }
-
-        // users 테이블 delete (하드딜리트)
-        userRepository.delete(user);
+        withdrawService.withdraw(userId);
 
         // 세션 invalidate
         try {

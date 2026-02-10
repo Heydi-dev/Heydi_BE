@@ -4,6 +4,7 @@ import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.common.error.ErrorCode;
 import com.example.heydibe.user.entity.User;
 import com.example.heydibe.user.repository.UserRepository;
+import com.example.heydibe.auth.service.SocialTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -11,11 +12,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
 
@@ -34,6 +42,8 @@ import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
+    private final SocialTokenService socialTokenService;
+    private final OAuth2AuthorizedClientService authorizedClientService;
 
     @Value("${app.frontend.base-url:http://localhost:5173}")
     private String frontendBaseUrl;
@@ -63,6 +73,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                         return new CustomException(ErrorCode.UNAUTHORIZED);
                     });
 
+            saveTokens(authentication, userId);
+
             // 세션에 userId 저장
             HttpSession session = request.getSession();
             session.setAttribute(LOGIN_USER, userId);
@@ -70,7 +82,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             log.info("OAuth2 로그인 성공 - userId: {}, username: {}, sessionId: {}", 
                      userId, user.getUsername(), session.getId());
 
-            // 프론트엔드로 리다이렉트 (프론트에서 /api/auth/me 호출하도록)
             String redirectUrl = frontendBaseUrl + successRedirectPath;
             response.sendRedirect(redirectUrl);
 
@@ -86,5 +97,38 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private void redirectToError(HttpServletResponse response, String errorCode) throws IOException {
         String errorUrl = String.format("%s/login?error=%s", frontendBaseUrl, errorCode);
         response.sendRedirect(errorUrl);
+    }
+
+    private void saveTokens(Authentication authentication, Long userId) {
+        if (!(authentication instanceof OAuth2AuthenticationToken oauthToken)) {
+            return;
+        }
+
+        String provider = oauthToken.getAuthorizedClientRegistrationId();
+        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
+                provider,
+                oauthToken.getName()
+        );
+
+        if (client == null) {
+            log.warn("OAuth2AuthorizedClient not found. provider: {}, userId: {}", provider, userId);
+            return;
+        }
+
+        OAuth2AccessToken accessToken = client.getAccessToken();
+        OAuth2RefreshToken refreshToken = client.getRefreshToken();
+
+        LocalDateTime tokenExpiresAt =
+                accessToken != null && accessToken.getExpiresAt() != null
+                        ? LocalDateTime.ofInstant(accessToken.getExpiresAt(), ZoneId.systemDefault())
+                        : null;
+
+        socialTokenService.saveTokens(
+                userId,
+                provider,
+                accessToken != null ? accessToken.getTokenValue() : null,
+                refreshToken != null ? refreshToken.getTokenValue() : null,
+                tokenExpiresAt
+        );
     }
 }

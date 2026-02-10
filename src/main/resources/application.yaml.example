@@ -34,16 +34,16 @@ spring:
         registration:
         # 구글 아이디 및 시크릿 키
           google:
-            client-id: YOUR_GOOGLE_CLIENT_ID
-            client-secret: YOUR_GOOGLE_CLIENT_SECRET
+            client-id: 30085032642-7i83fsaok4fob32u0o4h194gjvqs7g64.apps.googleusercontent.com
+            client-secret: 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
             redirect-uri: "{baseUrl}/login/oauth2/code/google"
             scope:
               - email
               - profile
-        # 카카오 아이디 및 시크릿 키
+          # 카카오 아이디 및 시크릿 키
           kakao:
-            client-id: YOUR_KAKAO_CLIENT_ID
-            client-secret: YOUR_KAKAO_CLIENT_SECRET
+            client-id: f3e7ad438cc70edc45f566705723840d
+            client-secret: ptkgNDqUKNb4BRmniqIctHhKGVLhHvuo
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
@@ -65,7 +65,7 @@ server:
 
 aws:
   s3:
-    bucket: YOUR_S3_BUCKET_NAME
+    bucket: heydi-dev-storage
     region: ap-southeast-2
     access-key: YOUR_AWS_ACCESS_KEY
     secret-key: YOUR_AWS_SECRET_KEY

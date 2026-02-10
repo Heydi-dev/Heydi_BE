@@ -69,7 +69,7 @@ public class SecurityConfig {
                     response.setContentType("application/json;charset=UTF-8");
                     
                     // ApiResponse 형식으로 JSON 응답
-                    String jsonResponse = "{\"isSuccess\":false,\"code\":\"401\",\"message\":\"인증이 필요합니다.\",\"result\":null}";
+                    String jsonResponse = "{\"success\":false,\"code\":\"401\",\"message\":\"인증이 필요합니다.\",\"result\":null}";
                     response.getWriter().write(jsonResponse);
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
@@ -77,7 +77,7 @@ public class SecurityConfig {
                     response.setContentType("application/json;charset=UTF-8");
                     
                     // ApiResponse 형식으로 JSON 응답
-                    String jsonResponse = "{\"isSuccess\":false,\"code\":\"403\",\"message\":\"접근 권한이 없습니다.\",\"result\":null}";
+                    String jsonResponse = "{\"success\":false,\"code\":\"403\",\"message\":\"접근 권한이 없습니다.\",\"result\":null}";
                     response.getWriter().write(jsonResponse);
                 })
             )

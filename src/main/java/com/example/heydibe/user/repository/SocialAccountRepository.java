@@ -16,6 +16,8 @@ public interface SocialAccountRepository extends JpaRepository<SocialAccount, Lo
 
     List<SocialAccount> findByUserId(Long userId);
 
+    Optional<SocialAccount> findByUserIdAndProvider(Long userId, String provider);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM SocialAccount sa WHERE sa.userId = :userId")
