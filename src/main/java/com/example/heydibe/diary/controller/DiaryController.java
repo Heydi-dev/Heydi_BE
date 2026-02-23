@@ -1,27 +1,45 @@
 package com.example.heydibe.diary.controller;
 
-import org.apache.commons.lang3.NotImplementedException;
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.example.heydibe.ai.dto.response.TestResponse;
+import com.example.heydibe.common.response.ApiResponse;
+import com.example.heydibe.diary.service.DiaryService;
+
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/diaries")
 public class DiaryController {
+    private final DiaryService diaryService;
+
+    @GetMapping("/test")
+    public ApiResponse<TestResponse> getTest() {
+        return ApiResponse.success("AI 서버 연결 테스트 성공", diaryService.getTest());
+    }
+
     @GetMapping
     public String getDiaries() {
         return "get diaries - TODO";
     }
 
     @GetMapping("/{diaryId}")
-    public String getDiaryById(@PathVariable Long diaryId) {
-        return "get diary by id: " + diaryId + " - TODO";
+    public String getDiaryById(@PathVariable Long diaryId, @RequestParam Integer pageNumber,
+            @RequestParam Integer pageSize) {
+        return "get diary by id: " + diaryId + " with page number: " + pageNumber + " and page size: " + pageSize
+                + " - TODO";
     }
 
     @PutMapping("/{diaryId}")
