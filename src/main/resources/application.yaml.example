@@ -74,6 +74,7 @@ aws:
 
 app:
   profile-image-base-url: https://heydi-dev-storage.s3.ap-southeast-2.amazonaws.com
+  post-image-base-url: https://heydi-dev-storage.s3.ap-southeast-2.amazonaws.com
   frontend:
     base-url: http://localhost:5173
     oauth:

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -38,6 +39,9 @@ public class S3Service {
 
     @Value("${app.default-profile-image-key:profiles/default.png}")
     private String defaultProfileImageKey;
+
+    @Value("${app.post-image-base-url:https://test-bucket.s3.ap-northeast-2.amazonaws.com}")
+    private String postImageBaseUrl;
 
     public String generatePresignedUrl(String objectKey, String contentType) {
         try {
@@ -94,7 +98,7 @@ public class S3Service {
         }
 
         try {
-            String objectKey = extractObjectKeyFromUrl(profileImageUrl);
+            String objectKey = extractObjectKeyFromUrl(profileImageUrl, profileImageBaseUrl);
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucket)
                     .key(objectKey)
@@ -117,10 +121,83 @@ public class S3Service {
         return baseUrl + "/" + defaultProfileImageKey;
     }
 
+    public String uploadPostImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
+        }
+
+        validateImageFile(file);
+
+        String objectKey = generatePostImageKey(file.getOriginalFilename());
+        String contentType = file.getContentType();
+
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objectKey)
+                    .contentType(contentType)
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+            String baseUrl = normalizeBaseUrl(postImageBaseUrl);
+            return baseUrl + "/" + objectKey;
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
+        }
+    }
+
+    public String copyPostImageFromUrl(String sourceUrl) {
+        if (sourceUrl == null || sourceUrl.isBlank()) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
+        }
+
+        String sourceKey = extractObjectKeyFromUrl(sourceUrl, postImageBaseUrl);
+        String targetKey = generatePostImageKey(sourceKey);
+
+        try {
+            CopyObjectRequest copyRequest = CopyObjectRequest.builder()
+                    .sourceBucket(bucket)
+                    .sourceKey(sourceKey)
+                    .destinationBucket(bucket)
+                    .destinationKey(targetKey)
+                    .build();
+            s3Client.copyObject(copyRequest);
+
+            String baseUrl = normalizeBaseUrl(postImageBaseUrl);
+            return baseUrl + "/" + targetKey;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
+        }
+    }
+
+    public void deletePostImage(String postImageUrl) {
+        if (postImageUrl == null || postImageUrl.isBlank()) {
+            return;
+        }
+
+        try {
+            String objectKey = extractObjectKeyFromUrl(postImageUrl, postImageBaseUrl);
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objectKey)
+                    .build();
+            s3Client.deleteObject(deleteRequest);
+        } catch (Exception e) {
+            // 삭제 실패는 로그만 남기고 계속 진행
+        }
+    }
+
     private String generateProfileImageKey(String originalFilename) {
         String extension = getFileExtension(originalFilename);
         String uuid = UUID.randomUUID().toString();
         return "profiles/" + uuid + "." + extension;
+    }
+
+    private String generatePostImageKey(String originalFilename) {
+        String extension = getFileExtension(originalFilename);
+        String uuid = UUID.randomUUID().toString();
+        return "posts/" + uuid + "." + extension;
     }
 
     private String getFileExtension(String filename) {
@@ -130,11 +207,18 @@ public class S3Service {
         return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
     }
 
-    private String extractObjectKeyFromUrl(String url) {
-        if (url.contains(profileImageBaseUrl + "/")) {
-            return url.substring(url.indexOf(profileImageBaseUrl + "/") + profileImageBaseUrl.length() + 1);
+    private String extractObjectKeyFromUrl(String url, String baseUrl) {
+        String normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+        if (url.contains(normalizedBaseUrl + "/")) {
+            return url.substring(url.indexOf(normalizedBaseUrl + "/") + normalizedBaseUrl.length() + 1);
         }
         return url;
+    }
+
+    private String normalizeBaseUrl(String baseUrl) {
+        return baseUrl.endsWith("/")
+                ? baseUrl.substring(0, baseUrl.length() - 1)
+                : baseUrl;
     }
 
     private void validateImageFile(MultipartFile file) {
