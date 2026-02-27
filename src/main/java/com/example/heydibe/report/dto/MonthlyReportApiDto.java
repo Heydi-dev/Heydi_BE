@@ -4,76 +4,59 @@ import java.util.List;
 
 public class MonthlyReportApiDto {
 
-    // ------------------------
-    // GET /reports/monthly
-    // ------------------------
+    // A) GET /reports/monthly
     public record AvailableMonthsResult(
             List<String> availableMonths,
             String defaultYearMonth
     ) {}
 
-    // ------------------------
-    // GET /reports/monthly/{yearMonth}/topics
-    // ------------------------
-    public record TopicsResult(
-            String yearMonth,
-            Top1 top1,
-            List<String> top2to4
-    ) {
-        public record Top1(
-                String name,
-                int ratio,
-                String description
-        ) {}
-    }
-
-    // ------------------------
-    // GET /reports/monthly/{yearMonth}/preferences
-    // ------------------------
-    public record PreferencesResult(
-            String yearMonth,
-            String like,
-            String dislike
-    ) {}
-
-    // ------------------------
-    // GET /reports/monthly/{yearMonth}/activities
-    // ------------------------
-    public record ActivitiesResult(
-            String yearMonth,
-            String summary
-    ) {}
-
-    // ------------------------
-    // GET /reports/monthly/{yearMonth}/insights
-    // ------------------------
-    public record InsightsResult(
-            String yearMonth,
-            String insight
-    ) {}
-
-    // ------------------------
-    // GET /reports/monthly/{yearMonth}/calendar
-    // ------------------------
+    // B) GET /reports/monthly/{yearMonth}/calendar  (yearMonth 필드 제거됨)
     public record CalendarResult(
             List<CalendarEntry> entries
-    ) {
-        public record CalendarEntry(
-                String date,
-                Long diaryId
-        ) {}
-    }
+    ) {}
 
-    // ------------------------
-    // GET /reports/monthly/{yearMonth}/reminder
-    // ------------------------
-    public record ReminderResult(
-            String baseYearMonth,
+    public record CalendarEntry(
+            String date,
+            Long diaryId
+    ) {}
+
+    // ✅ 통합 조회: GET /reports/monthly/{yearMonth}
+    public record MonthlyReportUnifiedResult(
+            String yearMonth,
+            Preferences preferences,
+            Activity activity,
+            Insight insight,
+            LastMonthReminder lastMonthReminder
+    ) {}
+
+    public record Preferences(String like, String dislike) {}
+    public record Activity(String summary) {}
+    public record Insight(String content) {}
+
+    public record LastMonthReminder(
             String sourceYearMonth,
             Long diaryId,
             String date,
             String title,
-            String topic,
+            List<String> topics,
             String emotion
+    ) {}
+
+    // ✅ topics 변경: top2~4도 ratio 표시
+    public record TopicsResult(
+            String yearMonth,
+            TopTopic top1,
+            List<SubTopic> top2to4
+    ) {}
+
+    public record TopTopic(
+            String name,
+            int ratio,
+            String description
+    ) {}
+
+    public record SubTopic(
+            String name,
+            int ratio
     ) {}
 }

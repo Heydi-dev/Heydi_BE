@@ -13,12 +13,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiResponse<Void>> handleApiException(ApiException e) {
-        return ResponseEntity.badRequest().body(ApiResponse.error(e.getCode(), e.getMessage()));
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error(e.getCode(), e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleOther(Exception e) {
         log.error("UNHANDLED_EXCEPTION", e);
-        return ResponseEntity.internalServerError().body(ApiResponse.error(9999, "서버 내부 오류"));
+        return ResponseEntity
+                .internalServerError()
+                .body(ApiResponse.error(9999, "서버 내부 오류"));
     }
 }
