@@ -31,6 +31,12 @@ public enum ErrorCode {
             "비밀번호가 일치하지 않습니다"
     ),
 
+    INVALID_PAGE_REQUEST(
+            HttpStatus.BAD_REQUEST,
+            "400",
+            "잘못된 페이지 요청입니다"
+    ),
+
     // 401 UNAUTHORIZED
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
@@ -86,6 +92,12 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "404",
             "존재하지 않는 사용자입니다"
+    ),
+    
+    DIARY_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "404",
+            "존재하지 않는 일기입니다"
     ),
 
     // 409 CONFLICT

@@ -95,6 +95,7 @@ public class SecurityConfig {
                     "/auth/login",
                     "/auth/signup",
                     "/auth/check-username",
+                    "/api/diaries/test",
                     "/oauth2/**",           // Spring Security OAuth2 자동 플로우 (/oauth2/authorization/{provider})
                     "/login/**",            // OAuth2 관련 경로 전체 허용
                     "/swagger-ui/**",
