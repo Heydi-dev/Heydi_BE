@@ -9,9 +9,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.heydibe.ai.dto.response.TestResponse;
+import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.response.ApiResponse;
+import com.example.heydibe.diary.dto.response.DiariesResponse;
 import com.example.heydibe.diary.service.DiaryService;
+import com.example.heydibe.user.entity.User;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 @RequestMapping("/api/diaries")
 public class DiaryController {
     private final DiaryService diaryService;
+    private final AuthService authService;
 
     @GetMapping("/test")
     public ApiResponse<TestResponse> getTest() {
@@ -31,15 +36,15 @@ public class DiaryController {
     }
 
     @GetMapping
-    public String getDiaries() {
-        return "get diaries - TODO";
+    public DiariesResponse getDiaries(@RequestParam Integer pageNumber,
+            @RequestParam Integer pageSize, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return diaryService.getDiaries(user, pageNumber, pageSize);
     }
 
     @GetMapping("/{diaryId}")
-    public String getDiaryById(@PathVariable Long diaryId, @RequestParam Integer pageNumber,
-            @RequestParam Integer pageSize) {
-        return "get diary by id: " + diaryId + " with page number: " + pageNumber + " and page size: " + pageSize
-                + " - TODO";
+    public String getDiaryById(@PathVariable Long diaryId) {
+        return "get diary by id: " + diaryId + " - TODO";
     }
 
     @PutMapping("/{diaryId}")

@@ -31,6 +31,12 @@ public enum ErrorCode {
             "비밀번호가 일치하지 않습니다"
     ),
 
+    INVALID_PAGE_REQUEST(
+            HttpStatus.BAD_REQUEST,
+            "400",
+            "잘못된 페이지 요청입니다"
+    ),
+
     // 401 UNAUTHORIZED
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
