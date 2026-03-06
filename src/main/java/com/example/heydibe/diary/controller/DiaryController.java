@@ -13,6 +13,7 @@ import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
+import com.example.heydibe.diary.dto.response.DiaryDeletionResponse;
 import com.example.heydibe.diary.service.DiaryService;
 import com.example.heydibe.user.entity.User;
 
@@ -56,8 +57,9 @@ public class DiaryController {
     }
 
     @DeleteMapping("/{diaryId}")
-    public String deleteDiary(@PathVariable Long diaryId) {
-        return "delete diary by id: " + diaryId + " - TODO";
+    public DiaryDeletionResponse deleteDiary(@PathVariable Long diaryId, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return diaryService.deleteDiary(user.getId(), diaryId);
     }
 
     @GetMapping("/{diaryId}/conversation")

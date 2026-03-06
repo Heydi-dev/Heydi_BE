@@ -17,6 +17,7 @@ import com.example.heydibe.common.error.ErrorCode;
 import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
+import com.example.heydibe.diary.dto.response.DiaryDeletionResponse;
 import com.example.heydibe.diary.entity.Diary;
 import com.example.heydibe.diary.entity.DiaryAttachment;
 import com.example.heydibe.diary.repository.DiaryAttachmentRepository;
@@ -56,7 +57,7 @@ public class DiaryService {
     public DetailedDiaryResponse getDiaryById(Long userId, Long diaryId) {
         DetailedDiaryResponse response = new DetailedDiaryResponse();
         Optional<Diary> temp = diaryRepository.findById(diaryId);
-        if (temp.isEmpty()){
+        if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
             throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
         }
         Diary diary = temp.get();
@@ -98,5 +99,22 @@ public class DiaryService {
         response.setReport(reportResponse);
 
         return response;
+    }
+
+    public DiaryDeletionResponse deleteDiary(Long userId, Long diaryId) {
+        Optional<Diary> temp = diaryRepository.findById(diaryId);
+        if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
+            throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
+        }
+        Diary diary = temp.get();
+
+        if (!diary.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        diary.setDeletedAt(java.time.LocalDateTime.now());
+        diaryRepository.save(diary);
+
+        return new DiaryDeletionResponse(true);
     }
 }
