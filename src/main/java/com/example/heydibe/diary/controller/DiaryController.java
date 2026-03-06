@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,16 +12,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.heydibe.ai.dto.response.TestResponse;
 import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.response.ApiResponse;
+import com.example.heydibe.diary.dto.request.DiaryPatchRequest;
 import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
 import com.example.heydibe.diary.dto.response.DiaryDeletionResponse;
+import com.example.heydibe.diary.dto.response.DiaryPatchResponse;
 import com.example.heydibe.diary.service.DiaryService;
 import com.example.heydibe.user.entity.User;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,9 +53,10 @@ public class DiaryController {
         return diaryService.getDiaryById(user.getId(), diaryId);
     }
 
-    @PutMapping("/{diaryId}")
-    public String putDiary(@PathVariable Long diaryId, @RequestBody String entity) {
-        return "put diary by id: " + diaryId + " with entity: " + entity + " - TODO";
+    @PatchMapping("/{diaryId}")
+    public DiaryPatchResponse patchDiary(@PathVariable Long diaryId, @RequestBody DiaryPatchRequest request, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return diaryService.patchDiary(user.getId(), diaryId, request);
     }
 
     @DeleteMapping("/{diaryId}")

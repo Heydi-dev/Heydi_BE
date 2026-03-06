@@ -15,9 +15,11 @@ import com.example.heydibe.ai.dto.response.TestResponse;
 import com.example.heydibe.ai.service.AiService;
 import com.example.heydibe.common.error.ErrorCode;
 import com.example.heydibe.common.exception.CustomException;
+import com.example.heydibe.diary.dto.request.DiaryPatchRequest;
 import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
 import com.example.heydibe.diary.dto.response.DiaryDeletionResponse;
+import com.example.heydibe.diary.dto.response.DiaryPatchResponse;
 import com.example.heydibe.diary.entity.Diary;
 import com.example.heydibe.diary.entity.DiaryAttachment;
 import com.example.heydibe.diary.repository.DiaryAttachmentRepository;
@@ -85,7 +87,7 @@ public class DiaryService {
         response.setOneLineDiary(diary.getSummaryOneLine());
         response.setContent(diary.getContent());
         response.setConversationSessionId("TODO");
-        response.setConversationDurationSec(1); // TODO
+        response.setConversationDurationSec(diary.getConversationDurationSeconds());
         
         List<DetailedDiaryResponse.PhotoResponse> photoResponses = new ArrayList<>();
         for (DiaryAttachment attachment : attachments) {
@@ -99,6 +101,40 @@ public class DiaryService {
         response.setReport(reportResponse);
 
         return response;
+    }
+
+    public DiaryPatchResponse patchDiary(Long id, Long diaryId, DiaryPatchRequest request) {
+        Optional<Diary> temp = diaryRepository.findById(diaryId);
+        if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
+            throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
+        }
+        Diary diary = temp.get();
+
+        if (!diary.getUser().getId().equals(id)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if (request.getEmotionCategory() != null) {
+            diary.setMainEmotion(request.getEmotionCategory());
+        }
+        if (request.getTopic() != null) {
+            List<String> topics = request.getTopic();
+            diary.setTopic1(topics.size() > 0 ? topics.get(0) : null); //TODO: DB diary_tag 반영 필요
+            diary.setTopic2(topics.size() > 1 ? topics.get(1) : null);
+        }
+
+        if (request.getOneLineDiary() != null) {
+            diary.setSummaryOneLine(request.getOneLineDiary());
+        }
+        if (request.getContent() != null) {
+            diary.setContent(request.getContent());
+        }
+
+        diary.setUpdatedAt(java.time.LocalDateTime.now());
+
+        diaryRepository.save(diary);
+
+        return new DiaryPatchResponse(diaryId, diary.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
     }
 
     public DiaryDeletionResponse deleteDiary(Long userId, Long diaryId) {
@@ -117,4 +153,6 @@ public class DiaryService {
 
         return new DiaryDeletionResponse(true);
     }
+
+
 }
