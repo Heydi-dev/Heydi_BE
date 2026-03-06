@@ -53,13 +53,17 @@ public class DiaryService {
         return response;
     }
 
-    public DetailedDiaryResponse getDiaryById(Long diaryId) {
+    public DetailedDiaryResponse getDiaryById(Long userId, Long diaryId) {
         DetailedDiaryResponse response = new DetailedDiaryResponse();
         Optional<Diary> temp = diaryRepository.findById(diaryId);
         if (temp.isEmpty()){
             throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
         }
         Diary diary = temp.get();
+
+        if (!diary.isPublic() && !diary.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
 
         List<DiaryAttachment> attachments = diaryAttachmentRepository.findAllByDiaryId(diaryId);
 

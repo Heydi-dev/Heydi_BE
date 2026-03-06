@@ -45,8 +45,9 @@ public class DiaryController {
 
     // is_public==true일 경우 전체 조회, false일 경우 본인만 조회 가능.
     @GetMapping("/{diaryId}")
-    public DetailedDiaryResponse getDiaryById(@PathVariable Long diaryId) {
-        return diaryService.getDiaryById(diaryId);
+    public DetailedDiaryResponse getDiaryById(@PathVariable Long diaryId, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return diaryService.getDiaryById(user.getId(), diaryId);
     }
 
     @PutMapping("/{diaryId}")
