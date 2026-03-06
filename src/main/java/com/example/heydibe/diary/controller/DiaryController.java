@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.heydibe.ai.dto.response.TestResponse;
 import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.response.ApiResponse;
+import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
 import com.example.heydibe.diary.service.DiaryService;
 import com.example.heydibe.user.entity.User;
@@ -42,9 +43,10 @@ public class DiaryController {
         return diaryService.getDiaries(user, pageNumber, pageSize);
     }
 
+    // is_public==true일 경우 전체 조회, false일 경우 본인만 조회 가능.
     @GetMapping("/{diaryId}")
-    public String getDiaryById(@PathVariable Long diaryId) {
-        return "get diary by id: " + diaryId + " - TODO";
+    public DetailedDiaryResponse getDiaryById(@PathVariable Long diaryId) {
+        return diaryService.getDiaryById(diaryId);
     }
 
     @PutMapping("/{diaryId}")

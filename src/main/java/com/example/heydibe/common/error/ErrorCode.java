@@ -93,6 +93,12 @@ public enum ErrorCode {
             "404",
             "존재하지 않는 사용자입니다"
     ),
+    
+    DIARY_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "404",
+            "존재하지 않는 일기입니다"
+    ),
 
     // 409 CONFLICT
     USERNAME_DUPLICATED(
