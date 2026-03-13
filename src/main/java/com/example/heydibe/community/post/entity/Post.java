@@ -84,6 +84,11 @@ public class Post {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void syncLikeCount(int likeCount) {
+        this.likeCount = Math.max(likeCount, 0);
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void updateCommentCount(int commentCount) {
         this.commentCount = commentCount;
         this.updatedAt = LocalDateTime.now();

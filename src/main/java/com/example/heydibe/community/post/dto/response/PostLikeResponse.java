@@ -6,10 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class PostLikeResponse {
-    private boolean is_liked;
-    private int like_count;
-
-    public boolean isLiked() {
-        return is_liked;
-    }
+    private boolean liked;
+    private int likeCount;
 }
