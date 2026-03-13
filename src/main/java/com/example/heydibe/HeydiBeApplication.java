@@ -11,7 +11,3 @@ public class HeydiBeApplication {
     }
 
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/jiwon-branch

@@ -9,7 +9,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -84,6 +84,7 @@ app:
     oauth:
       success-redirect: /login/success
       failure-redirect: /login/failure
-
+  ai-server:
+    base-url: http://localhost:8000
 
     

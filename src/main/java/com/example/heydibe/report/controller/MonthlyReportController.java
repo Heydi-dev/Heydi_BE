@@ -1,10 +1,17 @@
 package com.example.heydibe.report.controller;
 
-import com.example.heydibe.common.api.ApiResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.heydibe.common.auth.AuthUser;
-import com.example.heydibe.report.dto.MonthlyReportApiDto.*;
+import com.example.heydibe.common.response.ApiResponse;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.AvailableMonthsResult;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.CalendarResult;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.MonthlyReportUnifiedResult;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.TopicsResult;
 import com.example.heydibe.report.service.MonthlyReportQueryService;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/reports/monthly")
@@ -16,52 +23,40 @@ public class MonthlyReportController {
         this.service = service;
     }
 
-    // 1) GET /reports/monthly
     @GetMapping
     public ApiResponse<AvailableMonthsResult> getAvailableMonths(@AuthUser Long userId) {
         return ApiResponse.success(
-                1000,
-                "월간 리포트 가능 월 목록 조회에 성공했습니다.",
-                service.getAvailableMonths(userId)
-        );
+                "월간 리포트 가능한 목록 조회에 성공했습니다.",
+                service.getAvailableMonths(userId));
     }
 
-    // ✅ (통합) GET /reports/monthly/{yearMonth}
     @GetMapping("/{yearMonth}")
     public ApiResponse<MonthlyReportUnifiedResult> getUnified(
             @AuthUser Long userId,
             @PathVariable String yearMonth
     ) {
         return ApiResponse.success(
-                1000,
                 "월간 리포트 조회에 성공했습니다.",
-                service.getUnified(userId, yearMonth)
-        );
+                service.getUnified(userId, yearMonth));
     }
 
-    // 2) GET /reports/monthly/{yearMonth}/topics  (수정된 명세)
     @GetMapping("/{yearMonth}/topics")
     public ApiResponse<TopicsResult> getTopics(
             @AuthUser Long userId,
             @PathVariable String yearMonth
     ) {
         return ApiResponse.success(
-                1000,
                 "월간 주요 주제 리포트 조회에 성공했습니다.",
-                service.getTopics(userId, yearMonth)
-        );
+                service.getTopics(userId, yearMonth));
     }
 
-    // 3) GET /reports/monthly/{yearMonth}/calendar  (entries만)
     @GetMapping("/{yearMonth}/calendar")
     public ApiResponse<CalendarResult> getCalendar(
             @AuthUser Long userId,
             @PathVariable String yearMonth
     ) {
         return ApiResponse.success(
-                1000,
                 "캘린더 데이터를 조회했습니다.",
-                service.getCalendar(userId, yearMonth)
-        );
+                service.getCalendar(userId, yearMonth));
     }
 }
