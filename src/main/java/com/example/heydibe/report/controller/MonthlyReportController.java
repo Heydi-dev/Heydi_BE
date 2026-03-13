@@ -2,32 +2,41 @@ package com.example.heydibe.report.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.auth.AuthUser;
 import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.report.dto.MonthlyReportApiDto.AvailableMonthsResult;
 import com.example.heydibe.report.dto.MonthlyReportApiDto.CalendarResult;
 import com.example.heydibe.report.dto.MonthlyReportApiDto.MonthlyReportUnifiedResult;
 import com.example.heydibe.report.dto.MonthlyReportApiDto.TopicsResult;
+import com.example.heydibe.report.dto.request.MonthlyReportEntryRequest;
+import com.example.heydibe.report.dto.response.MonthlyReportEntryResponse;
+import com.example.heydibe.report.service.MonthlyReportEntryService;
 import com.example.heydibe.report.service.MonthlyReportQueryService;
+import com.example.heydibe.user.entity.User;
+
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/reports/monthly")
+@RequiredArgsConstructor
 public class MonthlyReportController {
 
-    private final MonthlyReportQueryService service;
-
-    public MonthlyReportController(MonthlyReportQueryService service) {
-        this.service = service;
-    }
+    private final MonthlyReportQueryService monthlyReportQueryService;
+    private final AuthService authService;
+    private final MonthlyReportEntryService monthlyReportEntryService;
 
     @GetMapping
     public ApiResponse<AvailableMonthsResult> getAvailableMonths(@AuthUser Long userId) {
         return ApiResponse.success(
                 "월간 리포트 가능한 목록 조회에 성공했습니다.",
-                service.getAvailableMonths(userId));
+                monthlyReportQueryService.getAvailableMonths(userId));
     }
 
     @GetMapping("/{yearMonth}")
@@ -37,7 +46,7 @@ public class MonthlyReportController {
     ) {
         return ApiResponse.success(
                 "월간 리포트 조회에 성공했습니다.",
-                service.getUnified(userId, yearMonth));
+                monthlyReportQueryService.getUnified(userId, yearMonth));
     }
 
     @GetMapping("/{yearMonth}/topics")
@@ -47,7 +56,7 @@ public class MonthlyReportController {
     ) {
         return ApiResponse.success(
                 "월간 주요 주제 리포트 조회에 성공했습니다.",
-                service.getTopics(userId, yearMonth));
+                monthlyReportQueryService.getTopics(userId, yearMonth));
     }
 
     @GetMapping("/{yearMonth}/calendar")
@@ -57,6 +66,19 @@ public class MonthlyReportController {
     ) {
         return ApiResponse.success(
                 "캘린더 데이터를 조회했습니다.",
-                service.getCalendar(userId, yearMonth));
+                monthlyReportQueryService.getCalendar(userId, yearMonth));
+    }
+    
+    @PostMapping("/{yearMonth}/entries")
+    public ApiResponse<MonthlyReportEntryResponse> includeDiaryInMonthlyReport(
+            @PathVariable String yearMonth,
+            @RequestBody MonthlyReportEntryRequest request,
+            HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        MonthlyReportEntryResponse response = monthlyReportEntryService.includeDiaryInMonthlyReport(
+                user.getId(),
+                yearMonth,
+                request.getDiaryId());
+        return ApiResponse.success("리포트로 전송 완료", response);
     }
 }

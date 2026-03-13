@@ -1,7 +1,5 @@
 package com.example.heydibe.diary.controller;
 
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -13,9 +11,9 @@ import com.example.heydibe.ai.dto.response.TestResponse;
 import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.diary.dto.request.DiaryPatchRequest;
+import com.example.heydibe.diary.dto.response.DiaryConversationResponse;
 import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
-import com.example.heydibe.diary.dto.response.DiaryDeletionResponse;
 import com.example.heydibe.diary.dto.response.DiaryPatchResponse;
 import com.example.heydibe.diary.service.DiaryService;
 import com.example.heydibe.user.entity.User;
@@ -40,34 +38,36 @@ public class DiaryController {
     }
 
     @GetMapping
-    public DiariesResponse getDiaries(@RequestParam Integer pageNumber,
+    public ApiResponse<DiariesResponse> getDiaries(@RequestParam Integer pageNumber,
             @RequestParam Integer pageSize, HttpSession session) {
         User user = authService.getLoginUserFromSession(session);
-        return diaryService.getDiaries(user, pageNumber, pageSize);
+        return ApiResponse.success("일기 목록 조회 성공", diaryService.getDiaries(user, pageNumber, pageSize));
     }
 
     // is_public==true일 경우 전체 조회, false일 경우 본인만 조회 가능.
     @GetMapping("/{diaryId}")
-    public DetailedDiaryResponse getDiaryById(@PathVariable Long diaryId, HttpSession session) {
+    public ApiResponse<DetailedDiaryResponse> getDiaryById(@PathVariable Long diaryId, HttpSession session) {
         User user = authService.getLoginUserFromSession(session);
-        return diaryService.getDiaryById(user.getId(), diaryId);
+        return ApiResponse.success("일기 조회 성공", diaryService.getDiaryById(user.getId(), diaryId));
     }
 
     @PatchMapping("/{diaryId}")
-    public DiaryPatchResponse patchDiary(@PathVariable Long diaryId, @RequestBody DiaryPatchRequest request, HttpSession session) {
+    public ApiResponse<DiaryPatchResponse> patchDiary(@PathVariable Long diaryId, @RequestBody DiaryPatchRequest request, HttpSession session) {
         User user = authService.getLoginUserFromSession(session);
-        return diaryService.patchDiary(user.getId(), diaryId, request);
+        return ApiResponse.success("일기 수정 성공", diaryService.patchDiary(user.getId(), diaryId, request));
     }
 
     @DeleteMapping("/{diaryId}")
-    public DiaryDeletionResponse deleteDiary(@PathVariable Long diaryId, HttpSession session) {
+    public ApiResponse<Void> deleteDiary(@PathVariable Long diaryId, HttpSession session) {
         User user = authService.getLoginUserFromSession(session);
-        return diaryService.deleteDiary(user.getId(), diaryId);
+        diaryService.deleteDiary(user.getId(), diaryId);
+        return ApiResponse.success("일기 삭제 성공", null);
     }
 
     @GetMapping("/{diaryId}/conversation")
-    public String getConversation(@PathVariable Long diaryId, @RequestParam String param) {
-        return "get conversation for diary id: " + diaryId + " with param: " + param + " - TODO";
+    public ApiResponse<DiaryConversationResponse> getConversation(@PathVariable Long diaryId, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return ApiResponse.success("대화 내용 조회 성공", diaryService.getDiaryConversation(user.getId(), diaryId));
     }
 
     @GetMapping("/{diaryId}/photos")
