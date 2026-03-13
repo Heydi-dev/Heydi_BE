@@ -25,6 +25,12 @@ public enum ErrorCode {
             "필수 입력값이 누락되었습니다"
     ),
 
+    INVALID_YEAR_MONTH_FORMAT(
+            HttpStatus.BAD_REQUEST,
+            "4000",
+            "yearMonth 형식이 올바르지 않습니다. (예: 2025-12)"
+    ),
+
     PASSWORD_MISMATCH(
             HttpStatus.BAD_REQUEST,
             "400",
@@ -118,6 +124,30 @@ public enum ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "500",
             "파일 업로드에 실패했습니다"
+    ),
+
+    REPORT_MONTH_LIST_FETCH_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "6001",
+            "월간 리포트 목록을 불러오지 못했습니다."
+    ),
+
+    REPORT_FETCH_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "6002",
+            "월간 리포트를 불러오지 못했습니다."
+    ),
+
+    REPORT_TOPICS_FETCH_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "6003",
+            "월간 주제 데이터를 불러오지 못했습니다."
+    ),
+
+    REPORT_CALENDAR_FETCH_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "6007",
+            "캘린더 데이터를 불러오지 못했습니다."
     );
 
     private final HttpStatus httpStatus;
