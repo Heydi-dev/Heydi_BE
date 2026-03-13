@@ -18,11 +18,13 @@ import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.diary.dto.request.DiaryPatchRequest;
 import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
-import com.example.heydibe.diary.dto.response.DiaryDeletionResponse;
+import com.example.heydibe.diary.dto.response.DiaryConversationResponse;
 import com.example.heydibe.diary.dto.response.DiaryPatchResponse;
 import com.example.heydibe.diary.entity.Diary;
 import com.example.heydibe.diary.entity.DiaryAttachment;
+import com.example.heydibe.diary.entity.DiaryConversation;
 import com.example.heydibe.diary.repository.DiaryAttachmentRepository;
+import com.example.heydibe.diary.repository.DiaryConversationRepository;
 import com.example.heydibe.diary.repository.DiaryRepository;
 import com.example.heydibe.user.entity.User;
 
@@ -34,6 +36,7 @@ public class DiaryService {
     private final AiService aiService;
     private final DiaryRepository diaryRepository;
     private final DiaryAttachmentRepository diaryAttachmentRepository;
+    private final DiaryConversationRepository diaryConversationRepository;
 
     public TestResponse getTest() {
         return aiService.test();
@@ -135,6 +138,25 @@ public class DiaryService {
         diaryRepository.save(diary);
 
         return new DiaryPatchResponse(diaryId, diary.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
+    }
+
+    public DiaryConversationResponse getDiaryConversation(Long userId, Long diaryId) {
+        Optional<Diary> temp = diaryRepository.findById(diaryId);
+        if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
+            throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
+        }
+        Diary diary = temp.get();
+
+        if (!diary.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        List<DiaryConversation> conversations = diaryConversationRepository.findAllByDiaryId(diaryId);
+        List<DiaryConversationResponse.MessageResponse> messages = conversations.stream()
+                .map(DiaryConversationResponse.MessageResponse::from)
+                .toList();
+
+        return new DiaryConversationResponse(messages);
     }
 
     public boolean deleteDiary(Long userId, Long diaryId) {

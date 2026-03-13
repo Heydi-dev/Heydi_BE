@@ -1,7 +1,5 @@
 package com.example.heydibe.diary.controller;
 
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -13,9 +11,9 @@ import com.example.heydibe.ai.dto.response.TestResponse;
 import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.diary.dto.request.DiaryPatchRequest;
+import com.example.heydibe.diary.dto.response.DiaryConversationResponse;
 import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
 import com.example.heydibe.diary.dto.response.DiariesResponse;
-import com.example.heydibe.diary.dto.response.DiaryDeletionResponse;
 import com.example.heydibe.diary.dto.response.DiaryPatchResponse;
 import com.example.heydibe.diary.service.DiaryService;
 import com.example.heydibe.user.entity.User;
@@ -67,8 +65,9 @@ public class DiaryController {
     }
 
     @GetMapping("/{diaryId}/conversation")
-    public String getConversation(@PathVariable Long diaryId, @RequestParam String param) {
-        return "get conversation for diary id: " + diaryId + " with param: " + param + " - TODO";
+    public ApiResponse<DiaryConversationResponse> getConversation(@PathVariable Long diaryId, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return ApiResponse.success("대화 내용 조회 성공", diaryService.getDiaryConversation(user.getId(), diaryId));
     }
 
     @GetMapping("/{diaryId}/photos")
