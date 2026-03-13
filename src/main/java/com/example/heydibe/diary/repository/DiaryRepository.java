@@ -1,6 +1,5 @@
 package com.example.heydibe.diary.repository;
 
-
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;

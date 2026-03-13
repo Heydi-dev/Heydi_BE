@@ -137,7 +137,7 @@ public class DiaryService {
         return new DiaryPatchResponse(diaryId, diary.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
     }
 
-    public DiaryDeletionResponse deleteDiary(Long userId, Long diaryId) {
+    public boolean deleteDiary(Long userId, Long diaryId) {
         Optional<Diary> temp = diaryRepository.findById(diaryId);
         if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
             throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
@@ -151,8 +151,6 @@ public class DiaryService {
         diary.setDeletedAt(java.time.LocalDateTime.now());
         diaryRepository.save(diary);
 
-        return new DiaryDeletionResponse(true);
+        return true;
     }
-
-
 }
