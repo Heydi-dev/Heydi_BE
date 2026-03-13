@@ -1,13 +1,17 @@
 package com.example.heydibe.config;
 
+import com.example.heydibe.common.auth.AuthUserArgumentResolver;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/**
- * Web 관련 설정
- * 세션 쿠키 설정은 application.properties에서 관리
- */
+import java.util.List;
+
+   
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    // Web 관련 설정
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(new AuthUserArgumentResolver());
+    }
 }

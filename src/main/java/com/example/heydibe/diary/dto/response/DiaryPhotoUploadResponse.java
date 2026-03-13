@@ -1,11 +1,12 @@
-package com.example.heydibe.community.post.dto.response;
+package com.example.heydibe.diary.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class PostPhotoUploadResponse {
+public class DiaryPhotoUploadResponse {
+
     private Long fileId;
     private String fileUrl;
 }

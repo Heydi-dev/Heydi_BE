@@ -16,19 +16,19 @@ public class PostCommentListResponse {
     @AllArgsConstructor
     public static class Result {
         private List<Comment> comments;
-        private LocalDateTime next_cursor;
-        private boolean has_next;
+        private LocalDateTime nextCursor;
+        private boolean hasNext;
     }
 
     @Getter
     @AllArgsConstructor
     public static class Comment {
-        private Long comment_id;
-        private Long user_id;
+        private Long commentId;
+        private Long userId;
         private String nickname;
-        private String profile_url;
+        private String profileUrl;
         private String content;
-        private boolean is_mine;
-        private LocalDateTime created_at;
+        private boolean mine;
+        private LocalDateTime createdAt;
     }
 }

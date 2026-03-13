@@ -53,9 +53,9 @@ public class AuthService {
         // 비밀번호 검증
         verifyPassword(request.getPassword(), user.getPasswordHash());
 
-        // fcm_token을 device_token 테이블에 저장/업데이트
-        if (request.getFcm_token() != null && !request.getFcm_token().isBlank()) {
-            upsertDeviceToken(user.getId(), request.getFcm_token());
+        // fcmToken을 device_token 테이블에 저장/업데이트
+        if (request.getFcmToken() != null && !request.getFcmToken().isBlank()) {
+            upsertDeviceToken(user.getId(), request.getFcmToken());
         }
 
         // 세션 생성 및 HttpSession에 userId 저장

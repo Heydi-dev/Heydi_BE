@@ -1,6 +1,6 @@
 package com.example.heydibe.report.controller;
 
-import com.example.heydibe.common.api.ApiResponse;
+import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.common.auth.AuthUser;
 import com.example.heydibe.report.dto.MonthlyReportApiDto.*;
 import com.example.heydibe.report.service.MonthlyReportQueryService;

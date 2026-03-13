@@ -13,31 +13,31 @@ import java.util.List;
 public class PostCreateRequest {
 
     @NotNull
-    private Long diary_id;
+    private Long diaryId;
 
     @NotBlank
-    private String post_title;
+    private String postTitle;
 
     @NotNull
-    private LocalDate diary_date;
+    private LocalDate diaryDate;
 
-    private Integer conversation_duration;
-
-    @NotBlank
-    private String post_emotion;
+    private Integer conversationDuration;
 
     @NotBlank
-    private String post_content;
+    private String postEmotion;
+
+    @NotBlank
+    private String postContent;
 
     @NotNull
-    private List<String> post_topics;
+    private List<String> postTopics;
 
-    private List<ExistingPhoto> existing_photos;
+    private List<ExistingPhoto> existingPhotos;
 
     @Getter
     @Setter
     public static class ExistingPhoto {
         @NotBlank
-        private String image_url;
+        private String imageUrl;
     }
 }

@@ -9,9 +9,4 @@ public class HeydiBeApplication {
     public static void main(String[] args) {
         SpringApplication.run(HeydiBeApplication.class, args);
     }
-
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/jiwon-branch

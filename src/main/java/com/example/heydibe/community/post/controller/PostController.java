@@ -33,7 +33,7 @@ public class PostController {
             HttpSession session
     ) {
         User user = authService.getLoginUserFromSession(session);
-        PostSelectDiaryResponse response = postService.selectDiary(user.getId(), request.getDiary_id());
+        PostSelectDiaryResponse response = postService.selectDiary(user.getId(), request.getDiaryId());
         return ApiResponse.success("포스트 초안 생성 성공", response);
     }
 
