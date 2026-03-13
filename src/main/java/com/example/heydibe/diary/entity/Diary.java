@@ -58,6 +58,9 @@ public class Diary {
     @Column(name = "is_public", nullable = false)
     private boolean isPublic;
 
+    @Column(name = "included_in_monthly_report")
+    private Boolean includedInMonthlyReport;
+
     @Column(name = "conversation_duration_seconds")
     private int conversationDurationSeconds;
 

@@ -1,7 +1,8 @@
 package com.example.heydibe.common.error;
 
-import lombok.Getter;
 import org.springframework.http.HttpStatus;
+
+import lombok.Getter;
 
 @Getter
 public enum ErrorCode {
@@ -35,6 +36,12 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "400",
             "잘못된 페이지 요청입니다"
+    ),
+
+    INVALID_YEAR_MONTH_FORMAT(
+            HttpStatus.BAD_REQUEST,
+            "400",
+            "연월 형식이 올바르지 않습니다. (예: 2025-11)"
     ),
 
     // 401 UNAUTHORIZED
@@ -93,7 +100,7 @@ public enum ErrorCode {
             "404",
             "존재하지 않는 사용자입니다"
     ),
-    
+
     DIARY_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "404",
@@ -105,6 +112,12 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "409",
             "이미 사용 중인 아이디입니다"
+    ),
+
+    DIARY_ALREADY_INCLUDED_IN_REPORT(
+            HttpStatus.CONFLICT,
+            "409",
+            "이미 해당 월 리포트에 포함된 일기입니다"
     ),
 
     // 500 INTERNAL_SERVER_ERROR
