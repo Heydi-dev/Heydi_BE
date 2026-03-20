@@ -1,17 +1,27 @@
 package com.example.heydibe.report.service;
 
-import com.example.heydibe.common.error.ErrorCode;
-import com.example.heydibe.common.exception.CustomException;
-import com.example.heydibe.report.domain.MonthlyReport;
-import com.example.heydibe.report.dto.MonthlyReportApiDto.*;
-import com.example.heydibe.report.repository.MonthlyReportRepository;
-import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.example.heydibe.common.error.ErrorCode;
+import com.example.heydibe.common.exception.CustomException;
+import com.example.heydibe.report.domain.MonthlyReport;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.Activity;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.AvailableMonthsResult;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.CalendarResult;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.Insight;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.LastMonthReminder;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.MonthlyReportUnifiedResult;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.Preferences;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.SubTopic;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.TopTopic;
+import com.example.heydibe.report.dto.MonthlyReportApiDto.TopicsResult;
+import com.example.heydibe.report.repository.MonthlyReportRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @Service
 public class MonthlyReportQueryService {
@@ -19,7 +29,6 @@ public class MonthlyReportQueryService {
     private final MonthlyReportRepository monthlyReportRepository;
 
     public MonthlyReportQueryService(MonthlyReportRepository monthlyReportRepository) {
-
         this.monthlyReportRepository = monthlyReportRepository;
     }
 
@@ -30,37 +39,33 @@ public class MonthlyReportQueryService {
             String defaultYm = monthlyReportRepository.findDefaultYearMonth(userId);
             return new AvailableMonthsResult(months, defaultYm);
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.REPORT_MONTH_LIST_FETCH_FAILED);
+            throw new CustomException(ErrorCode.MONTHLY_REPORT_LIST_FETCH_FAILED);
         }
     }
 
-    // ✅ 통합: /reports/monthly/{yearMonth}
+    // 통합: /reports/monthly/{yearMonth}
     public MonthlyReportUnifiedResult getUnified(Long userId, String yearMonth) {
         YearMonth ym = parseYearMonthOrThrow(yearMonth);
 
         try {
             JsonNode root = readAnalysisRoot(userId, ym.toString());
 
-            // preferences
             JsonNode pref = root.path("preferences");
             Preferences preferences = new Preferences(
                     textOrNull(pref, "like"),
                     textOrNull(pref, "dislike")
             );
 
-            // activity
             JsonNode activityNode = root.path("activity");
             Activity activity = new Activity(
                     textOrNull(activityNode, "summary")
             );
 
-            // insight
             JsonNode insightNode = root.path("insight");
             Insight insight = new Insight(
                     textOrNull(insightNode, "content")
             );
 
-            // reminder
             JsonNode rem = root.path("lastMonthReminder");
             List<String> topics = stringArrayOrEmpty(rem.path("topics"));
             LastMonthReminder reminder = new LastMonthReminder(
@@ -82,11 +87,11 @@ public class MonthlyReportQueryService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.REPORT_FETCH_FAILED);
+            throw new CustomException(ErrorCode.MONTHLY_REPORT_FETCH_FAILED);
         }
     }
 
-    // ✅ topics: /reports/monthly/{yearMonth}/topics
+    // topics: /reports/monthly/{yearMonth}/topics
     public TopicsResult getTopics(Long userId, String yearMonth) {
         YearMonth ym = parseYearMonthOrThrow(yearMonth);
 
@@ -94,14 +99,16 @@ public class MonthlyReportQueryService {
             JsonNode root = readAnalysisRoot(userId, ym.toString());
             JsonNode arr = root.path("topics");
             if (!arr.isArray()) {
-                throw new CustomException(ErrorCode.REPORT_TOPICS_FETCH_FAILED);
+                throw new CustomException(ErrorCode.MONTHLY_REPORT_TOPICS_FETCH_FAILED);
             }
 
             List<JsonNode> list = new ArrayList<>();
-            for (JsonNode n : arr) list.add(n);
+            for (JsonNode n : arr) {
+                list.add(n);
+            }
 
             if (list.isEmpty()) {
-                throw new CustomException(ErrorCode.REPORT_TOPICS_FETCH_FAILED);
+                throw new CustomException(ErrorCode.MONTHLY_REPORT_TOPICS_FETCH_FAILED);
             }
 
             JsonNode first = list.get(0);
@@ -121,68 +128,79 @@ public class MonthlyReportQueryService {
             }
 
             if (top1.name() == null || top1.name().isBlank()) {
-                throw new CustomException(ErrorCode.REPORT_TOPICS_FETCH_FAILED);
+                throw new CustomException(ErrorCode.MONTHLY_REPORT_TOPICS_FETCH_FAILED);
             }
 
             return new TopicsResult(yearMonth, top1, top2to4);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.REPORT_TOPICS_FETCH_FAILED);
+            throw new CustomException(ErrorCode.MONTHLY_REPORT_TOPICS_FETCH_FAILED);
         }
     }
 
-    // B) calendar (명세가 entries만)
+    // B) calendar
     public CalendarResult getCalendar(Long userId, String yearMonth) {
         parseYearMonthOrThrow(yearMonth);
         try {
             return new CalendarResult(List.of());
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.REPORT_CALENDAR_FETCH_FAILED);
+            throw new CustomException(ErrorCode.MONTHLY_REPORT_CALENDAR_FETCH_FAILED);
         }
     }
 
-    // ---------------------
-    // helpers
-    // ---------------------
     private YearMonth parseYearMonthOrThrow(String yearMonth) {
         try {
             return YearMonth.parse(yearMonth);
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.INVALID_YEAR_MONTH_FORMAT);
+            throw new CustomException(ErrorCode.REPORT_YEAR_MONTH_INVALID);
         }
     }
 
     private JsonNode readAnalysisRoot(Long userId, String yearMonth) {
         MonthlyReport mr = monthlyReportRepository.findByUserIdAndReportYearMonth(userId, yearMonth)
-                .orElseThrow(() -> new CustomException(ErrorCode.REPORT_MONTH_LIST_FETCH_FAILED));
+                .orElseThrow(() -> new CustomException(ErrorCode.MONTHLY_REPORT_LIST_FETCH_FAILED));
 
         JsonNode json = mr.getAnalysisJson();
         return (json == null || json.isNull()) ? JsonNodeFactory.instance.objectNode() : json;
     }
 
     private String textOrNull(JsonNode node, String field) {
-        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
         JsonNode v = node.path(field);
-        if (v.isMissingNode() || v.isNull()) return null;
+        if (v.isMissingNode() || v.isNull()) {
+            return null;
+        }
         String s = v.asText();
         return (s == null || s.isBlank()) ? null : s;
     }
 
     private Long longOrNull(JsonNode node, String field) {
-        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
         JsonNode v = node.path(field);
-        if (v.isMissingNode() || v.isNull()) return null;
-        if (!v.canConvertToLong()) return null;
+        if (v.isMissingNode() || v.isNull()) {
+            return null;
+        }
+        if (!v.canConvertToLong()) {
+            return null;
+        }
         return v.asLong();
     }
 
     private List<String> stringArrayOrEmpty(JsonNode arr) {
-        if (arr == null || !arr.isArray()) return List.of();
+        if (arr == null || !arr.isArray()) {
+            return List.of();
+        }
         List<String> out = new ArrayList<>();
         for (JsonNode n : arr) {
             String s = n.asText(null);
-            if (s != null && !s.isBlank()) out.add(s);
+            if (s != null && !s.isBlank()) {
+                out.add(s);
+            }
         }
         return out;
     }

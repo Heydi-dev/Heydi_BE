@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/diaries")
+@RequestMapping("/api/diaries")
 public class DiaryPhotoController {
 
     private final AuthService authService;

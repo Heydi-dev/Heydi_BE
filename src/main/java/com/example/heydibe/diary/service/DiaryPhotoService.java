@@ -2,8 +2,8 @@ package com.example.heydibe.diary.service;
 
 import com.example.heydibe.common.error.ErrorCode;
 import com.example.heydibe.common.exception.CustomException;
-import com.example.heydibe.diary.domain.Diary;
-import com.example.heydibe.diary.domain.DiaryAttachment;
+import com.example.heydibe.diary.entity.Diary;
+import com.example.heydibe.diary.entity.DiaryAttachment;
 import com.example.heydibe.diary.dto.response.DiaryPhotoListResponse;
 import com.example.heydibe.diary.dto.response.DiaryPhotoUploadResponse;
 import com.example.heydibe.diary.repository.DiaryAttachmentRepository;
@@ -31,15 +31,16 @@ public class DiaryPhotoService {
     public DiaryPhotoUploadResponse addPhoto(Long userId, Long diaryId, MultipartFile photo) {
         Diary diary = getOwnedDiary(userId, diaryId);
 
-        long count = diaryAttachmentRepository.countByDiaryId(diary.getDiaryId());
+        long count = diaryAttachmentRepository.countByDiaryId(diary.getId());
         if (count >= MAX_PHOTOS) {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
         String fileUrl = s3Service.uploadPostImage(photo);
         DiaryAttachment attachment = DiaryAttachment.builder()
-                .diaryId(diary.getDiaryId())
+                .diary(diary)
                 .fileUrl(fileUrl)
+                .fileType(photo.getContentType())
                 .build();
         DiaryAttachment saved = diaryAttachmentRepository.save(attachment);
 
@@ -50,7 +51,7 @@ public class DiaryPhotoService {
     public void deletePhoto(Long userId, Long diaryId, Long fileId) {
         Diary diary = getOwnedDiary(userId, diaryId);
 
-        DiaryAttachment attachment = diaryAttachmentRepository.findByIdAndDiaryId(fileId, diary.getDiaryId())
+        DiaryAttachment attachment = diaryAttachmentRepository.findByIdAndDiaryId(fileId, diary.getId())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
         s3Service.deletePostImage(attachment.getFileUrl());
@@ -61,7 +62,7 @@ public class DiaryPhotoService {
     public DiaryPhotoListResponse getPhotos(Long userId, Long diaryId) {
         Diary diary = getOwnedDiary(userId, diaryId);
 
-        List<DiaryAttachment> attachments = diaryAttachmentRepository.findByDiaryIdOrderByIdAsc(diary.getDiaryId());
+        List<DiaryAttachment> attachments = diaryAttachmentRepository.findByDiaryIdOrderByIdAsc(diary.getId());
         List<DiaryPhotoListResponse.Photo> photos = new ArrayList<>();
         for (int i = 0; i < attachments.size(); i++) {
             DiaryAttachment attachment = attachments.get(i);
@@ -77,14 +78,14 @@ public class DiaryPhotoService {
 
     private Diary getOwnedDiary(Long userId, Long diaryId) {
         Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.DIARY_NOT_FOUND));
 
         if (diary.getDeletedAt() != null) {
-            throw new CustomException(ErrorCode.NOT_FOUND);
+            throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
         }
 
-        if (!diary.getUserId().equals(userId)) {
-            throw new CustomException(ErrorCode.FORBIDDEN);
+        if (!diary.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
         return diary;
     }
