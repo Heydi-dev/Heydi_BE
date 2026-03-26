@@ -31,12 +31,12 @@ public class DiaryPhotoService {
     public DiaryPhotoUploadResponse addPhoto(Long userId, Long diaryId, MultipartFile photo) {
         Diary diary = getOwnedDiary(userId, diaryId);
 
-        long count = diaryAttachmentRepository.countByDiaryId(diary.getId());
-        if (count >= MAX_PHOTOS) {
+        long count = diaryAttachmentRepository.countByDiaryId(diary.getId()); // 현재 다이어리에 등록된 사진 개수 조회
+        if (count >= MAX_PHOTOS) { // 이미 최대 개수에 도달함
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
-        String fileUrl = s3Service.uploadPostImage(photo);
+        String fileUrl = s3Service.uploadDiaryImage(photo);
         DiaryAttachment attachment = DiaryAttachment.builder()
                 .diary(diary)
                 .fileUrl(fileUrl)
@@ -54,7 +54,7 @@ public class DiaryPhotoService {
         DiaryAttachment attachment = diaryAttachmentRepository.findByIdAndDiaryId(fileId, diary.getId())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
-        s3Service.deletePostImage(attachment.getFileUrl());
+        s3Service.deleteDiaryImage(attachment.getFileUrl());
         diaryAttachmentRepository.delete(attachment);
     }
 
