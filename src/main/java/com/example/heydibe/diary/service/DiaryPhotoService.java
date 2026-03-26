@@ -111,7 +111,7 @@ public class DiaryPhotoService {
             throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
         }
         if (photos.size() > MAX_PHOTOS) {
-            throw new CustomException(ErrorCode.BAD_REQUEST);
+            throw new CustomException(ErrorCode.DIARY_PHOTO_LIMIT_EXCEEDED);
         }
     }
 
