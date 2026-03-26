@@ -2,10 +2,10 @@ package com.example.heydibe.diary.service;
 
 import com.example.heydibe.common.error.ErrorCode;
 import com.example.heydibe.common.exception.CustomException;
-import com.example.heydibe.diary.entity.Diary;
-import com.example.heydibe.diary.entity.DiaryAttachment;
 import com.example.heydibe.diary.dto.response.DiaryPhotoListResponse;
 import com.example.heydibe.diary.dto.response.DiaryPhotoUploadResponse;
+import com.example.heydibe.diary.entity.Diary;
+import com.example.heydibe.diary.entity.DiaryAttachment;
 import com.example.heydibe.diary.repository.DiaryAttachmentRepository;
 import com.example.heydibe.diary.repository.DiaryRepository;
 import com.example.heydibe.infrastructure.s3.S3Service;
@@ -28,23 +28,42 @@ public class DiaryPhotoService {
     private final S3Service s3Service;
 
     @Transactional
-    public DiaryPhotoUploadResponse addPhoto(Long userId, Long diaryId, MultipartFile photo) {
+    public DiaryPhotoUploadResponse addPhotos(Long userId, Long diaryId, List<MultipartFile> photos) {
         Diary diary = getOwnedDiary(userId, diaryId);
 
-        long count = diaryAttachmentRepository.countByDiaryId(diary.getId()); // 현재 다이어리에 등록된 사진 개수 조회
-        if (count >= MAX_PHOTOS) { // 이미 최대 개수에 도달함
+        if (photos == null || photos.isEmpty()) {
+            throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
+        }
+        if (photos.size() > MAX_PHOTOS) {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
-        String fileUrl = s3Service.uploadDiaryImage(photo);
-        DiaryAttachment attachment = DiaryAttachment.builder()
-                .diary(diary)
-                .fileUrl(fileUrl)
-                .fileType(photo.getContentType())
-                .build();
-        DiaryAttachment saved = diaryAttachmentRepository.save(attachment);
+        long count = diaryAttachmentRepository.countByDiaryId(diary.getId());
+        if (count > 0) {
+            throw new CustomException(ErrorCode.DIARY_PHOTO_ALREADY_EXISTS);
+        }
+        if (count + photos.size() > MAX_PHOTOS) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
+        }
 
-        return new DiaryPhotoUploadResponse(saved.getId(), saved.getFileUrl());
+        List<DiaryPhotoUploadResponse.Photo> uploadedPhotos = new ArrayList<>();
+
+        for (MultipartFile photo : photos) {
+            String fileUrl = s3Service.uploadDiaryImage(photo);
+            DiaryAttachment attachment = DiaryAttachment.builder()
+                    .diary(diary)
+                    .fileUrl(fileUrl)
+                    .fileType(photo.getContentType())
+                    .build();
+            DiaryAttachment saved = diaryAttachmentRepository.save(attachment);
+
+            uploadedPhotos.add(new DiaryPhotoUploadResponse.Photo(
+                    saved.getId(),
+                    saved.getFileUrl()
+            ));
+        }
+
+        return new DiaryPhotoUploadResponse(uploadedPhotos);
     }
 
     @Transactional
@@ -64,12 +83,10 @@ public class DiaryPhotoService {
 
         List<DiaryAttachment> attachments = diaryAttachmentRepository.findByDiaryIdOrderByIdAsc(diary.getId());
         List<DiaryPhotoListResponse.Photo> photos = new ArrayList<>();
-        for (int i = 0; i < attachments.size(); i++) {
-            DiaryAttachment attachment = attachments.get(i);
+        for (DiaryAttachment attachment : attachments) {
             photos.add(new DiaryPhotoListResponse.Photo(
                     attachment.getId(),
-                    attachment.getFileUrl(),
-                    i + 1
+                    attachment.getFileUrl()
             ));
         }
 

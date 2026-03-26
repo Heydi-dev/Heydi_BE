@@ -14,8 +14,7 @@ public class DiaryPhotoListResponse {
     @Getter
     @AllArgsConstructor
     public static class Photo {
-        private Long fileId;
-        private String fileUrl;
-        private int order;
+        private Long id;
+        private String imageUrl;
     }
 }

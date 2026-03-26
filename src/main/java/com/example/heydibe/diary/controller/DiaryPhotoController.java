@@ -33,7 +33,7 @@ public class DiaryPhotoController {
             HttpSession session
     ) {
         User user = authService.getLoginUserFromSession(session);
-        DiaryPhotoUploadResponse response = diaryPhotoService.addPhoto(user.getId(), diaryId, request.getPhoto());
+        DiaryPhotoUploadResponse response = diaryPhotoService.addPhotos(user.getId(), diaryId, request.getPhotos());
         return ApiResponse.success("다이어리 사진 업로드 성공", response);
     }
 
