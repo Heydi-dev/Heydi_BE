@@ -1,0 +1,43 @@
+### 아이디 중복 확인
+POST http://127.0.0.1:8080/auth/check-username
+Content-Type: application/json
+
+{
+  "username": "testuser"
+}
+
+### 회원가입
+POST http://127.0.0.1:8080/auth/signup
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="username"
+
+testuser
+--WebAppBoundary
+Content-Disposition: form-data; name="password"
+
+020729aa
+--WebAppBoundary
+Content-Disposition: form-data; name="nickname"
+
+테스트유저
+--WebAppBoundary--
+
+### 로그인
+POST http://127.0.0.1:8080/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "020729aa",
+  "fcm_token": "test-fcm-token"
+}
+
+### 월간 리포트 조회
+GET http://127.0.0.1:8080/reports/monthly/2025-12
+
+
+
+### 로그아웃
+POST http://127.0.0.1:8080/auth/logout

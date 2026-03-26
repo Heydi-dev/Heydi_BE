@@ -1,0 +1,93 @@
+package com.example.heydibe.diary.controller;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.heydibe.ai.dto.response.TestResponse;
+import com.example.heydibe.auth.service.AuthService;
+import com.example.heydibe.common.response.ApiResponse;
+import com.example.heydibe.diary.dto.request.DiaryPatchRequest;
+import com.example.heydibe.diary.dto.response.DiaryConversationResponse;
+import com.example.heydibe.diary.dto.response.DetailedDiaryResponse;
+import com.example.heydibe.diary.dto.response.DiariesResponse;
+import com.example.heydibe.diary.dto.response.DiaryPatchResponse;
+import com.example.heydibe.diary.service.DiaryService;
+import com.example.heydibe.user.entity.User;
+
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/diaries")
+public class DiaryController {
+    private final DiaryService diaryService;
+    private final AuthService authService;
+
+    @GetMapping("/test")
+    public ApiResponse<TestResponse> getTest() {
+        return ApiResponse.success("AI 서버 연결 테스트 성공", diaryService.getTest());
+    }
+
+    @GetMapping
+    public ApiResponse<DiariesResponse> getDiaries(@RequestParam Integer pageNumber,
+            @RequestParam Integer pageSize, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return ApiResponse.success("일기 목록 조회 성공", diaryService.getDiaries(user, pageNumber, pageSize));
+    }
+
+    // is_public==true일 경우 전체 조회, false일 경우 본인만 조회 가능.
+    @GetMapping("/{diaryId}")
+    public ApiResponse<DetailedDiaryResponse> getDiaryById(@PathVariable Long diaryId, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return ApiResponse.success("일기 조회 성공", diaryService.getDiaryById(user.getId(), diaryId));
+    }
+
+    @PatchMapping("/{diaryId}")
+    public ApiResponse<DiaryPatchResponse> patchDiary(@PathVariable Long diaryId, @RequestBody DiaryPatchRequest request, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return ApiResponse.success("일기 수정 성공", diaryService.patchDiary(user.getId(), diaryId, request));
+    }
+
+    @DeleteMapping("/{diaryId}")
+    public ApiResponse<Void> deleteDiary(@PathVariable Long diaryId, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        diaryService.deleteDiary(user.getId(), diaryId);
+        return ApiResponse.success("일기 삭제 성공", null);
+    }
+
+    @GetMapping("/{diaryId}/conversation")
+    public ApiResponse<DiaryConversationResponse> getConversation(@PathVariable Long diaryId, HttpSession session) {
+        User user = authService.getLoginUserFromSession(session);
+        return ApiResponse.success("대화 내용 조회 성공", diaryService.getDiaryConversation(user.getId(), diaryId));
+    }
+
+    @GetMapping("/{diaryId}/photos")
+    public String getPhotos(@PathVariable Long diaryId) {
+        return "get photos for diary id: " + diaryId + " - TODO";
+    }
+
+    @PostMapping("/{diaryId}/photos")
+    public String postPhotos(@PathVariable Long diaryId, @RequestBody String entity) {
+
+        return "posted photos for diary id: " + diaryId + " with entity: " + entity + " - TODO";
+    }
+
+    @DeleteMapping("/{diaryId}/photos/{photoId}")
+    public String deletePhotos(@PathVariable Long diaryId, @PathVariable Long photoId) {
+        return "deleted photo id: " + photoId + " for diary id: " + diaryId + " - TODO";
+    }
+
+    @PostMapping("/{diaryId}/export/pdf")
+    public String exportPdf(@PathVariable Long diaryId) {
+        return "exported pdf for diary id: " + diaryId + " - TODO";
+    }
+}
