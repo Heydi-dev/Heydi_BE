@@ -28,42 +28,34 @@ public class DiaryPhotoService {
     private final S3Service s3Service;
 
     @Transactional
-    public DiaryPhotoUploadResponse addPhotos(Long userId, Long diaryId, List<MultipartFile> photos) {
+    public DiaryPhotoUploadResponse createPhotos(Long userId, Long diaryId, List<MultipartFile> photos) {
         Diary diary = getOwnedDiary(userId, diaryId);
 
-        if (photos == null || photos.isEmpty()) {
-            throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
-        }
-        if (photos.size() > MAX_PHOTOS) {
-            throw new CustomException(ErrorCode.BAD_REQUEST);
-        }
+        validatePhotosInput(photos);
 
         long count = diaryAttachmentRepository.countByDiaryId(diary.getId());
         if (count > 0) {
             throw new CustomException(ErrorCode.DIARY_PHOTO_ALREADY_EXISTS);
         }
-        if (count + photos.size() > MAX_PHOTOS) {
-            throw new CustomException(ErrorCode.BAD_REQUEST);
+
+        return savePhotos(diary, photos);
+    }
+
+    @Transactional
+    public DiaryPhotoUploadResponse replacePhotos(Long userId, Long diaryId, List<MultipartFile> photos) {
+        Diary diary = getOwnedDiary(userId, diaryId);
+
+        validatePhotosInput(photos);
+
+        List<DiaryAttachment> existingAttachments = diaryAttachmentRepository.findByDiaryIdOrderByIdAsc(diary.getId());
+        for (DiaryAttachment attachment : existingAttachments) {
+            s3Service.deleteDiaryImage(attachment.getFileUrl());
+        }
+        if (!existingAttachments.isEmpty()) {
+            diaryAttachmentRepository.deleteAll(existingAttachments);
         }
 
-        List<DiaryPhotoUploadResponse.Photo> uploadedPhotos = new ArrayList<>();
-
-        for (MultipartFile photo : photos) {
-            String fileUrl = s3Service.uploadDiaryImage(photo);
-            DiaryAttachment attachment = DiaryAttachment.builder()
-                    .diary(diary)
-                    .fileUrl(fileUrl)
-                    .fileType(photo.getContentType())
-                    .build();
-            DiaryAttachment saved = diaryAttachmentRepository.save(attachment);
-
-            uploadedPhotos.add(new DiaryPhotoUploadResponse.Photo(
-                    saved.getId(),
-                    saved.getFileUrl()
-            ));
-        }
-
-        return new DiaryPhotoUploadResponse(uploadedPhotos);
+        return savePhotos(diary, photos);
     }
 
     @Transactional
@@ -91,6 +83,36 @@ public class DiaryPhotoService {
         }
 
         return new DiaryPhotoListResponse(photos);
+    }
+
+    private DiaryPhotoUploadResponse savePhotos(Diary diary, List<MultipartFile> photos) {
+        List<DiaryPhotoUploadResponse.Photo> uploadedPhotos = new ArrayList<>();
+
+        for (MultipartFile photo : photos) {
+            String fileUrl = s3Service.uploadDiaryImage(photo);
+            DiaryAttachment attachment = DiaryAttachment.builder()
+                    .diary(diary)
+                    .fileUrl(fileUrl)
+                    .fileType(photo.getContentType())
+                    .build();
+            DiaryAttachment saved = diaryAttachmentRepository.save(attachment);
+
+            uploadedPhotos.add(new DiaryPhotoUploadResponse.Photo(
+                    saved.getId(),
+                    saved.getFileUrl()
+            ));
+        }
+
+        return new DiaryPhotoUploadResponse(uploadedPhotos);
+    }
+
+    private void validatePhotosInput(List<MultipartFile> photos) {
+        if (photos == null || photos.isEmpty()) {
+            throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
+        }
+        if (photos.size() > MAX_PHOTOS) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
+        }
     }
 
     private Diary getOwnedDiary(Long userId, Long diaryId) {

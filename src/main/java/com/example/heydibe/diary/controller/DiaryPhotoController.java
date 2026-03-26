@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,8 +34,19 @@ public class DiaryPhotoController {
             HttpSession session
     ) {
         User user = authService.getLoginUserFromSession(session);
-        DiaryPhotoUploadResponse response = diaryPhotoService.addPhotos(user.getId(), diaryId, request.getPhotos());
+        DiaryPhotoUploadResponse response = diaryPhotoService.createPhotos(user.getId(), diaryId, request.getPhotos());
         return ApiResponse.success("다이어리 사진 업로드 성공", response);
+    }
+
+    @PutMapping(value = "/{diaryId}/photos", consumes = "multipart/form-data")
+    public ApiResponse<DiaryPhotoUploadResponse> updatePhotos(
+            @PathVariable Long diaryId,
+            @ModelAttribute @Valid DiaryPhotoUploadRequest request,
+            HttpSession session
+    ) {
+        User user = authService.getLoginUserFromSession(session);
+        DiaryPhotoUploadResponse response = diaryPhotoService.replacePhotos(user.getId(), diaryId, request.getPhotos());
+        return ApiResponse.success("다이어리 사진 수정 성공", response);
     }
 
     @DeleteMapping("/{diaryId}/photos/{fileId}")
