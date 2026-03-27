@@ -70,22 +70,6 @@ public class DiaryController {
         return ApiResponse.success("대화 내용 조회 성공", diaryService.getDiaryConversation(user.getId(), diaryId));
     }
 
-    @GetMapping("/{diaryId}/photos")
-    public String getPhotos(@PathVariable Long diaryId) {
-        return "get photos for diary id: " + diaryId + " - TODO";
-    }
-
-    @PostMapping("/{diaryId}/photos")
-    public String postPhotos(@PathVariable Long diaryId, @RequestBody String entity) {
-
-        return "posted photos for diary id: " + diaryId + " with entity: " + entity + " - TODO";
-    }
-
-    @DeleteMapping("/{diaryId}/photos/{photoId}")
-    public String deletePhotos(@PathVariable Long diaryId, @PathVariable Long photoId) {
-        return "deleted photo id: " + photoId + " for diary id: " + diaryId + " - TODO";
-    }
-
     @PostMapping("/{diaryId}/export/pdf")
     public String exportPdf(@PathVariable Long diaryId) {
         return "exported pdf for diary id: " + diaryId + " - TODO";

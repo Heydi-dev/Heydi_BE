@@ -7,5 +7,5 @@ import lombok.Getter;
 public class PostSelectDiaryRequest {
 
     @NotNull
-    private Long diary_id;
+    private Long diaryId;
 }

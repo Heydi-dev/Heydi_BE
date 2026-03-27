@@ -6,6 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class PostPhotoUploadResponse {
-    private Long file_id;
-    private String file_url;
+    private Long fileId;
+    private String fileUrl;
 }

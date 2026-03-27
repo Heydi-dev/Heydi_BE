@@ -22,6 +22,7 @@ import com.example.heydibe.user.repository.UserProfileRepository;
 import com.example.heydibe.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -78,30 +79,30 @@ public class PostService {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
-        if (!post.getDiaryId().equals(request.getDiary_id())) {
+        if (!post.getDiaryId().equals(request.getDiaryId())) {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
         int existingCount = (int) postAttachmentRepository.countByPostId(postId);
-        int diaryPhotoCount = request.getExisting_photos() == null ? 0 : request.getExisting_photos().size();
+        int diaryPhotoCount = request.getExistingPhotos() == null ? 0 : request.getExistingPhotos().size();
         if (existingCount + diaryPhotoCount > MAX_PHOTOS) {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
-        if (request.getExisting_photos() != null) {
-            for (PostCreateRequest.ExistingPhoto photo : request.getExisting_photos()) {
-                String copiedUrl = s3Service.copyPostImageFromUrl(photo.getImage_url());
+        if (request.getExistingPhotos() != null) {
+            for (PostCreateRequest.ExistingPhoto photo : request.getExistingPhotos()) {
+                String copiedUrl = s3Service.copyPostImageFromUrl(photo.getImageUrl());
                 saveAttachment(postId, copiedUrl);
             }
         }
 
-        String topic = joinTopics(request.getPost_topics());
+        String topic = joinTopics(request.getPostTopics());
         post.publish(
-                request.getPost_title(),
+                request.getPostTitle(),
                 topic,
-                request.getPost_emotion(),
-                request.getPost_content(),
-                request.getDiary_date()
+                request.getPostEmotion(),
+                request.getPostContent(),
+                request.getDiaryDate()
         );
         post.updateCommentCount(0);
         postRepository.save(post);
@@ -115,6 +116,7 @@ public class PostService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
         validateOwner(userId, post);
+        validateDraft(post);
 
         long count = postAttachmentRepository.countByPostId(postId);
         if (count >= MAX_PHOTOS) {
@@ -132,6 +134,7 @@ public class PostService {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
         validateOwner(userId, post);
+        validateDraft(post);
 
         PostAttachment attachment = postAttachmentRepository.findByIdAndPostId(fileId, postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
@@ -177,26 +180,31 @@ public class PostService {
 
     @Transactional
     public PostLikeResponse togglePostLike(Long userId, Long postId) {
-        Post post = postRepository.findByIdAndStatusAndDeletedAtIsNull(postId, STATUS_PUBLISHED)
+        Post post = postRepository.findForLikeToggle(postId, STATUS_PUBLISHED)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
-        PostLike existing = postLikeRepository.findByPostIdAndUserId(postId, userId).orElse(null);
-        if (existing == null) {
-            PostLike like = PostLike.builder()
-                    .postId(postId)
-                    .userId(userId)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            postLikeRepository.save(like);
-            post.increaseLikeCount();
-            postRepository.save(post);
-            return new PostLikeResponse(true, post.getLikeCount());
+        boolean liked;
+        int deleted = postLikeRepository.deleteByPostIdAndUserId(postId, userId);
+        if (deleted == 1) {
+            liked = false;
+        } else {
+            try {
+                PostLike like = PostLike.builder()
+                        .postId(postId)
+                        .userId(userId)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                postLikeRepository.save(like);
+                liked = true;
+            } catch (DataIntegrityViolationException e) {
+                liked = true;
+            }
         }
 
-        postLikeRepository.delete(existing);
-        post.decreaseLikeCount();
+        long likeCount = postLikeRepository.countByPostId(postId);
+        post.syncLikeCount((int) likeCount);
         postRepository.save(post);
-        return new PostLikeResponse(false, post.getLikeCount());
+        return new PostLikeResponse(liked, post.getLikeCount());
     }
 
     @Transactional
@@ -276,6 +284,12 @@ public class PostService {
     private void validateOwner(Long userId, Post post) {
         if (!post.getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateDraft(Post post) {
+        if (!post.isDraft()) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
         }
     }
 

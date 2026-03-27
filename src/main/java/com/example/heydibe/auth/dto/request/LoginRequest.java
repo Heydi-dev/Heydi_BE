@@ -17,6 +17,6 @@ public class LoginRequest {
     @Size(max = 255, message = "password length is too long")
     private String password;
 
-    @NotBlank(message = "fcm_token is required")
-    private String fcm_token;
+    @NotBlank(message = "fcmToken is required")
+    private String fcmToken;
 }

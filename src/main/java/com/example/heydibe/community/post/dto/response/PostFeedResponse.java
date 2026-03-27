@@ -10,30 +10,30 @@ import java.util.List;
 @AllArgsConstructor
 public class PostFeedResponse {
 
-    private Result result;
+    private Result feed;
 
     @Getter
     @AllArgsConstructor
     public static class Result {
         private List<PostSummary> posts;
-        private Long next_cursor;
-        private boolean has_next;
+        private Long nextCursor;
+        private boolean hasNext;
     }
 
     @Getter
     @AllArgsConstructor
     public static class PostSummary {
-        private Long post_id;
-        private Long user_id;
+        private Long postId;
+        private Long userId;
         private String nickname;
-        private String profile_url;
-        private String post_title;
-        private List<String> post_topics;
-        private String post_emotion;
-        private String post_content;
-        private int like_count;
-        private int comment_count;
-        private boolean is_liked;
-        private LocalDateTime created_at;
+        private String profileUrl;
+        private String postTitle;
+        private List<String> postTopics;
+        private String postEmotion;
+        private String postContent;
+        private int likeCount;
+        private int commentCount;
+        private boolean liked;
+        private LocalDateTime createdAt;
     }
 }

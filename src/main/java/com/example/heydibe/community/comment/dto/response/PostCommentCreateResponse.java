@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PostCommentCreateResponse {
 
-    private Long comment_id;
-    private Long user_id;
+    private Long commentId;
+    private Long userId;
     private String nickname;
-    private String profile_url;
+    private String profileUrl;
     private String content;
-    private boolean is_mine;
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
+    private boolean mine;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

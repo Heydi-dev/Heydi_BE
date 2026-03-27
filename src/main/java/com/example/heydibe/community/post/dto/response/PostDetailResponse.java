@@ -11,33 +11,33 @@ import java.util.List;
 @AllArgsConstructor
 public class PostDetailResponse {
 
-    private Long post_id;
+    private Long postId;
     private Author author;
-    private Long diary_id;
-    private LocalDate diary_date;
-    private String post_title;
-    private List<String> post_topics;
-    private String post_emotion;
-    private String post_content;
+    private Long diaryId;
+    private LocalDate diaryDate;
+    private String postTitle;
+    private List<String> postTopics;
+    private String postEmotion;
+    private String postContent;
     private List<Photo> photos;
-    private int like_count;
-    private int comment_count;
-    private boolean is_liked;
-    private LocalDateTime created_at;
+    private int likeCount;
+    private int commentCount;
+    private boolean liked;
+    private LocalDateTime createdAt;
 
     @Getter
     @AllArgsConstructor
     public static class Author {
-        private Long user_id;
+        private Long userId;
         private String nickname;
-        private String profile_url;
+        private String profileUrl;
     }
 
     @Getter
     @AllArgsConstructor
     public static class Photo {
         private Long id;
-        private String image_url;
+        private String imageUrl;
         private int order;
     }
 }

@@ -50,8 +50,9 @@ public class AuthService {
 
         verifyPassword(request.getPassword(), user.getPasswordHash());
 
-        if (request.getFcm_token() != null && !request.getFcm_token().isBlank()) {
-            upsertDeviceToken(user.getId(), request.getFcm_token());
+        // fcmToken을 device_token 테이블에 저장/업데이트
+        if (request.getFcmToken() != null && !request.getFcmToken().isBlank()) {
+            upsertDeviceToken(user.getId(), request.getFcmToken());
         }
 
         createSession(session, user.getId());

@@ -1,7 +1,7 @@
 package com.example.heydibe.infrastructure.s3;
 
-import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.common.error.ErrorCode;
+import com.example.heydibe.common.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -43,6 +43,9 @@ public class S3Service {
     @Value("${app.post-image-base-url:https://test-bucket.s3.ap-northeast-2.amazonaws.com}")
     private String postImageBaseUrl;
 
+    @Value("${app.diary-image-base-url:https://test-bucket.s3.ap-northeast-2.amazonaws.com}")
+    private String diaryImageBaseUrl;
+
     public String generatePresignedUrl(String objectKey, String contentType) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -82,7 +85,7 @@ public class S3Service {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String baseUrl = profileImageBaseUrl.endsWith("/") 
+            String baseUrl = profileImageBaseUrl.endsWith("/")
                     ? profileImageBaseUrl.substring(0, profileImageBaseUrl.length() - 1)
                     : profileImageBaseUrl;
             return baseUrl + "/" + objectKey;
@@ -115,7 +118,7 @@ public class S3Service {
      * S3에 업로드된 기본 이미지 URL을 반환
      */
     public String getDefaultProfileImageUrl() {
-        String baseUrl = profileImageBaseUrl.endsWith("/") 
+        String baseUrl = profileImageBaseUrl.endsWith("/")
                 ? profileImageBaseUrl.substring(0, profileImageBaseUrl.length() - 1)
                 : profileImageBaseUrl;
         return baseUrl + "/" + defaultProfileImageKey;
@@ -188,6 +191,73 @@ public class S3Service {
         }
     }
 
+    public String uploadDiaryImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
+        }
+
+        validateImageFile(file);
+
+        String objectKey = generateDiaryImageKey(file.getOriginalFilename());
+        String contentType = file.getContentType();
+
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objectKey)
+                    .contentType(contentType)
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+            String baseUrl = normalizeBaseUrl(diaryImageBaseUrl);
+            return baseUrl + "/" + objectKey;
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
+        }
+    }
+
+    public String copyDiaryImageFromUrl(String sourceUrl) {
+        if (sourceUrl == null || sourceUrl.isBlank()) {
+            throw new CustomException(ErrorCode.BAD_REQUEST);
+        }
+
+        String sourceKey = extractObjectKeyFromUrl(sourceUrl, diaryImageBaseUrl);
+        String targetKey = generateDiaryImageKey(sourceKey);
+
+        try {
+            CopyObjectRequest copyRequest = CopyObjectRequest.builder()
+                    .sourceBucket(bucket)
+                    .sourceKey(sourceKey)
+                    .destinationBucket(bucket)
+                    .destinationKey(targetKey)
+                    .build();
+            s3Client.copyObject(copyRequest);
+
+            String baseUrl = normalizeBaseUrl(diaryImageBaseUrl);
+            return baseUrl + "/" + targetKey;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
+        }
+    }
+
+    public void deleteDiaryImage(String diaryImageUrl) {
+        if (diaryImageUrl == null || diaryImageUrl.isBlank()) {
+            return;
+        }
+
+        try {
+            String objectKey = extractObjectKeyFromUrl(diaryImageUrl, diaryImageBaseUrl);
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(objectKey)
+                    .build();
+            s3Client.deleteObject(deleteRequest);
+        } catch (Exception e) {
+            // Ignore delete failures for diary image.
+        }
+    }
+
     private String generateProfileImageKey(String originalFilename) {
         String extension = getFileExtension(originalFilename);
         String uuid = UUID.randomUUID().toString();
@@ -198,6 +268,12 @@ public class S3Service {
         String extension = getFileExtension(originalFilename);
         String uuid = UUID.randomUUID().toString();
         return "posts/" + uuid + "." + extension;
+    }
+
+    private String generateDiaryImageKey(String originalFilename) {
+        String extension = getFileExtension(originalFilename);
+        String uuid = UUID.randomUUID().toString();
+        return "diary/" + uuid + "." + extension;
     }
 
     private String getFileExtension(String filename) {

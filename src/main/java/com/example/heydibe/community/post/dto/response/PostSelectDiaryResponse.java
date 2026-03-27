@@ -6,5 +6,5 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class PostSelectDiaryResponse {
-    private Long post_id;
+    private Long postId;
 }
