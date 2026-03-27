@@ -1,6 +1,6 @@
 package com.example.heydibe.auth.controller;
 
-import com.example.heydibe.auth.dto.request.CheckUsernameRequest; 
+import com.example.heydibe.auth.dto.request.CheckUsernameRequest;
 import com.example.heydibe.auth.dto.request.LoginRequest;
 import com.example.heydibe.auth.dto.request.SignUpRequest;
 import com.example.heydibe.auth.dto.request.SignUpSwaggerRequest;

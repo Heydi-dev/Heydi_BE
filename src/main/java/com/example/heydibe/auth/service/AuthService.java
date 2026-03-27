@@ -40,28 +40,22 @@ public class AuthService {
     private final WithdrawService withdrawService;
 
     public LoginResponse login(LoginRequest request, HttpSession session) {
-        // 입력값 검증
         String username = request.getUsername().trim();
         if (username.isBlank()) {
             throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
         }
 
-        // username으로 User 조회 (대소문자 구별, 탈퇴한 사용자 제외)
         User user = userRepository.findByUsernameAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOGIN_FAILED));
 
-        // 비밀번호 검증
         verifyPassword(request.getPassword(), user.getPasswordHash());
 
-        // fcm_token을 device_token 테이블에 저장/업데이트
         if (request.getFcm_token() != null && !request.getFcm_token().isBlank()) {
             upsertDeviceToken(user.getId(), request.getFcm_token());
         }
 
-        // 세션 생성 및 HttpSession에 userId 저장
         createSession(session, user.getId());
 
-        // device_token 테이블에서 가장 최근 fcm_token 조회
         String fcmToken = deviceTokenRepository.findLatestByUserId(user.getId())
                 .map(DeviceToken::getFcmToken)
                 .orElse(null);
@@ -70,25 +64,21 @@ public class AuthService {
     }
 
     public CheckUsernameResponse checkUsername(CheckUsernameRequest request) {
-        // 입력값 검증
         String username = request.getUsername().trim();
         if (username.isBlank()) {
             throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
         }
 
-        // DB 조회 (대소문자 구별, 탈퇴한 사용자는 제외하고 중복 체크)
         boolean duplicate = userRepository.existsByUsernameAndDeletedAtIsNull(username);
 
         return CheckUsernameResponse.from(duplicate);
     }
 
     public void logout(HttpSession session) {
-        // 세션 저장소에서 JSESSIONID 조회
         if (session == null) {
             return;
         }
 
-        // 해당 세션 invalidate
         try {
             session.invalidate();
         } catch (Exception e) {
@@ -110,7 +100,6 @@ public class AuthService {
 
     @Transactional
     public SignUpResponse signup(SignUpRequest request, MultipartFile profileImage) {
-        // 입력값 체크
         String username = request.getUsername().trim();
         String password = request.getPassword();
         String nickname = request.getNickname().trim();
@@ -119,17 +108,15 @@ public class AuthService {
             throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
         }
 
-        // 탈퇴/중복 아이디 체크 + 추가 검증
         checkUsernameDuplicate(username);
 
-        // 프로필 이미지 검증 및 업로드
-        String profileImageUrl = s3Service.uploadProfileImage(profileImage);
+        String profileImageUrl = null;
+        if (profileImage != null && !profileImage.isEmpty()) {
+            profileImageUrl = s3Service.uploadProfileImage(profileImage);
+        }
 
-        // 패스워드 암호화 (BCrypt)
-        // 패스워드 암호화 (BCrypt)
         String passwordHash = passwordEncoder.encode(password);
 
-        // User 엔티티 생성
         User user = User.builder()
                 .username(username)
                 .passwordHash(passwordHash)
@@ -142,7 +129,6 @@ public class AuthService {
 
         userRepository.save(user);
 
-        // UserProfile 엔티티 생성
         UserProfile userProfile = UserProfile.builder()
                 .userId(user.getId())
                 .profileImageUrl(profileImageUrl)
@@ -155,16 +141,13 @@ public class AuthService {
 
     @Transactional
     public WithdrawResponse withdraw(HttpSession session) {
-        // 세션 존재 여부 확인
         if (session == null) {
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
 
-        // 세션에서 user id 추출
         Long userId = getUserIdFromSession(session);
         withdrawService.withdraw(userId);
 
-        // 세션 invalidate
         try {
             session.invalidate();
         } catch (Exception e) {
@@ -174,10 +157,7 @@ public class AuthService {
         return WithdrawResponse.from(true);
     }
 
-    // ----------------- 유틸리티 메소드 ------------------
-
     public void checkUsernameDuplicate(String username) {
-        // 탈퇴한 사용자의 username은 재사용 가능하므로, 활성 사용자만 중복 체크
         if (userRepository.existsByUsernameAndDeletedAtIsNull(username)) {
             throw new CustomException(ErrorCode.USERNAME_DUPLICATED);
         }
@@ -197,18 +177,14 @@ public class AuthService {
         }
     }
 
-    // device_token 테이블에 FCM token 저장/업데이트 (UPSERT)
     private void upsertDeviceToken(Long userId, String fcmToken) {
-        // 기존에 같은 user_id와 fcm_token 조합이 있는지 확인
         Optional<DeviceToken> existingToken = deviceTokenRepository.findByUserIdAndFcmToken(userId, fcmToken);
-        
+
         if (existingToken.isPresent()) {
-            // 이미 존재하면 last_active_at만 업데이트
             DeviceToken deviceToken = existingToken.get();
             deviceToken.updateLastActiveAt();
             deviceTokenRepository.save(deviceToken);
         } else {
-            // 없으면 새로 생성
             DeviceToken deviceToken = DeviceToken.builder()
                     .userId(userId)
                     .fcmToken(fcmToken)
