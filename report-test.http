@@ -31,13 +31,59 @@ Content-Type: application/json
 {
   "username": "testuser",
   "password": "020729aa",
-  "fcm_token": "test-fcm-token"
+  "fcmToken": "test-fcm-token"
 }
 
-### 월간 리포트 조회
+### 월간 리포트 통합 조회
 GET http://127.0.0.1:8080/reports/monthly/2025-12
+### 캘린더
+GET http://127.0.0.1:8080/reports/monthly/2025-12/calendar
+### 자주 나온 주제
+GET http://127.0.0.1:8080/reports/monthly/2025-12/topics
+### 감정 변화
+GET http://127.0.0.1:8080/reports/monthly/2025-12/emotions
+### 월 선택
+GET http://127.0.0.1:8080/reports/monthly
+
 ###
 GET http://127.0.0.1:8080/mypage/profile/me
 
+###내가 공유한 글 삭제
+DELETE http://127.0.0.1:8080/community/posts/1
+
+###마이페이지 메인 조회
+GET http://127.0.0.1:8080/users/me
+
+###내가 공유한 글 조회
+GET http://127.0.0.1:8080/mypage/shared
+###내가 좋아요 한 글 조회
+GET http://127.0.0.1:8080/mypage/likes
+
+### ========================================
+### Reminder 설정 조회
+### ========================================
+GET http://127.0.0.1:8080/settings/reminder
+Content-Type: application/json
+Cookie: accessToken=YOUR_ACCESS_TOKEN
+
+
+### ========================================
+### Reminder 비활성화
+### ========================================
+PUT http://127.0.0.1:8080/settings/reminder/disable
+Content-Type: application/json
+Cookie: accessToken=YOUR_ACCESS_TOKEN
+
+
+### ========================================
+### FCM 토큰 등록
+### ========================================
+POST http://127.0.0.1:8080/settings/fcmtoken
+Content-Type: application/json
+Cookie: accessToken=YOUR_ACCESS_TOKEN
+
+{
+  "fcmToken": "test-token-123"
+}
 ### 로그아웃
 POST http://127.0.0.1:8080/auth/logout

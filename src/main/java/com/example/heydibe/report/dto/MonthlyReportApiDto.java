@@ -1,10 +1,7 @@
 package com.example.heydibe.report.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,5 +26,38 @@ public class MonthlyReportApiDto {
         private String reportYearMonth;
         private JsonNode analysisJson;
         private LocalDateTime createdAt;
+    }
+
+    // ✅ 캘린더
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MonthlyCalendarResult {
+        private Long reportId;
+        private String reportYearMonth;
+        private JsonNode calendar;
+    }
+
+    // ✅ 주제
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MonthlyTopicsResult {
+        private Long reportId;
+        private String reportYearMonth;
+        private JsonNode topics;
+    }
+
+    // ✅ 감정
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MonthlyEmotionsResult {
+        private Long reportId;
+        private String reportYearMonth;
+        private JsonNode emotions;
     }
 }

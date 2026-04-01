@@ -11,15 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-public class   {
+public class MyPagePostController {
 
     private final AuthService authService;
     private final MyPageService myPageService;
 
-    /**
-     * 내가 공유한 글 조회
-     * GET /mypage/shared
-     */
     @GetMapping("/mypage/shared")
     public ApiResponse getMySharedPosts(HttpSession session) {
         User user = authService.getLoginUserFromSession(session);
@@ -30,10 +26,6 @@ public class   {
         );
     }
 
-    /**
-     * 내가 좋아요 한 글 조회
-     * GET /mypage/likes
-     */
     @GetMapping("/mypage/likes")
     public ApiResponse getMyLikedPosts(HttpSession session) {
         User user = authService.getLoginUserFromSession(session);

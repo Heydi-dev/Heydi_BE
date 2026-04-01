@@ -1,6 +1,5 @@
 package com.example.heydibe.settings.entity;
 
-import com.example.heydibe.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,8 +8,7 @@ import java.time.LocalTime;
 @Entity
 @Table(name = "reminder_setting")
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 public class ReminderSetting {
@@ -19,16 +17,24 @@ public class ReminderSetting {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false, unique = true)
-    private User user;
+    @Column(name = "user_id", nullable = false, unique = true)
+    private Long userId;
 
-    @Column(name = "enabled", nullable = false)
+    @Column(nullable = false)
     private boolean enabled;
 
     @Column(name = "reminder_time")
     private LocalTime reminderTime;
 
-    @Column(name = "days_of_week", length = 50)
-    private String daysOfWeek;
+    public void disable() {
+        this.enabled = false;
+    }
+
+    public void enable() {
+        this.enabled = true;
+    }
+
+    public void updateReminderTime(LocalTime reminderTime) {
+        this.reminderTime = reminderTime;
+    }
 }

@@ -22,7 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/community")
-public class PostController {
+public class CommunityPostController {
 
     private final AuthService authService;
     private final PostService postService;
