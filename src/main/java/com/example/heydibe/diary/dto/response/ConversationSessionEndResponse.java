@@ -18,7 +18,6 @@ public class ConversationSessionEndResponse {
         private Long id;
         private String date;
         private String title;
-        private String emotionText;
         private String emotionCategory;
         private List<String> topic;
         private String oneLineDiary;

@@ -351,22 +351,10 @@ public class ConversationSessionService {
                 diary.getId(),
                 date == null || LocalDate.MIN.equals(date) ? null : date.format(DATE_FORMAT),
                 title,
-                buildEmotionText(emotionCategory),
                 emotionCategory,
                 topics,
                 oneLine,
                 content
         );
-    }
-
-    private String buildEmotionText(String emotionCategory) {
-        return switch (emotionCategory) {
-            case "happy" -> "Today felt bright and comfortable.";
-            case "joy" -> "Today had many joyful moments.";
-            case "sad" -> "Today felt heavy and quiet.";
-            case "annoyed" -> "Today included some irritating moments.";
-            case "angry" -> "Today had moments of anger.";
-            default -> "Today was mostly neutral.";
-        };
     }
 }
