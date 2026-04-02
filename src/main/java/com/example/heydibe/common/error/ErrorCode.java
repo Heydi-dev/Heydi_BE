@@ -74,6 +74,18 @@ public enum ErrorCode {
             "캘린더 데이터를 불러오지 못했습니다"
     ),
 
+    CONVERSATION_TARGET_DATE_INVALID(
+            HttpStatus.BAD_REQUEST,
+            "400",
+            "Invalid targetDate format. expected yyyy-MM-dd"
+    ),
+
+    WS_UNSUPPORTED_MESSAGE_TYPE(
+            HttpStatus.BAD_REQUEST,
+            "400",
+            "Unsupported message type."
+    ),
+
     // 401 UNAUTHORIZED
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
@@ -154,6 +166,18 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "409",
             "이미 사진이 등록되어 있습니다"
+    ),
+
+    CONVERSATION_DIARY_ALREADY_EXISTS(
+            HttpStatus.CONFLICT,
+            "409",
+            "A diary already exists for the target date."
+    ),
+
+    CONVERSATION_ALREADY_ENDED(
+            HttpStatus.CONFLICT,
+            "409",
+            "Conversation session already ended."
     ),
 
     // 422 UNPROCESSABLE_ENTITY
