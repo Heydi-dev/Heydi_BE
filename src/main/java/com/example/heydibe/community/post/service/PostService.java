@@ -111,22 +111,30 @@ public class PostService {
     }
 
     @Transactional
-    public PostPhotoUploadResponse addPhoto(Long userId, Long postId, MultipartFile photo) {
+    public PostPhotoUploadResponse addPhotos(Long userId, Long postId, List<MultipartFile> photos) {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
         validateOwner(userId, post);
         validateDraft(post);
+        validatePhotosInput(photos);
 
         long count = postAttachmentRepository.countByPostId(postId);
-        if (count >= MAX_PHOTOS) {
+        if (count + photos.size() > MAX_PHOTOS) {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
-        String fileUrl = s3Service.uploadPostImage(photo);
-        PostAttachment attachment = saveAttachment(postId, fileUrl);
+        List<PostPhotoUploadResponse.Photo> uploadedPhotos = new ArrayList<>();
+        for (MultipartFile photo : photos) {
+            String fileUrl = s3Service.uploadPostImage(photo);
+            PostAttachment attachment = saveAttachment(postId, fileUrl);
+            uploadedPhotos.add(new PostPhotoUploadResponse.Photo(
+                    attachment.getId(),
+                    attachment.getFileUrl()
+            ));
+        }
 
-        return new PostPhotoUploadResponse(attachment.getId(), attachment.getFileUrl());
+        return new PostPhotoUploadResponse(uploadedPhotos);
     }
 
     @Transactional
@@ -290,6 +298,12 @@ public class PostService {
     private void validateDraft(Post post) {
         if (!post.isDraft()) {
             throw new CustomException(ErrorCode.BAD_REQUEST);
+        }
+    }
+
+    private void validatePhotosInput(List<MultipartFile> photos) {
+        if (photos == null || photos.isEmpty()) {
+            throw new CustomException(ErrorCode.REQUIRED_FIELD_MISSING);
         }
     }
 

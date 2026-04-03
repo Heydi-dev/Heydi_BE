@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -55,8 +54,7 @@ public class CommunityPostController {
             HttpSession session
     ) {
         User user = authService.getLoginUserFromSession(session);
-        MultipartFile photo = request.getPhoto();
-        PostPhotoUploadResponse response = postService.addPhoto(user.getId(), postId, photo);
+        PostPhotoUploadResponse response = postService.addPhotos(user.getId(), postId, request.getPhotos());
         return ApiResponse.success("사진 업로드 성공", response);
     }
 
