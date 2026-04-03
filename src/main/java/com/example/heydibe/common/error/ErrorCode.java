@@ -77,13 +77,13 @@ public enum ErrorCode {
     CONVERSATION_TARGET_DATE_INVALID(
             HttpStatus.BAD_REQUEST,
             "400",
-            "Invalid targetDate format. expected yyyy-MM-dd"
+            "날짜 형식이 올바르지 않습니다. (예: 2025-11-23)"
     ),
 
     WS_UNSUPPORTED_MESSAGE_TYPE(
             HttpStatus.BAD_REQUEST,
             "400",
-            "Unsupported message type."
+            "지원하지 않는 메시지 타입입니다."
     ),
 
     // 401 UNAUTHORIZED
@@ -171,13 +171,13 @@ public enum ErrorCode {
     CONVERSATION_DIARY_ALREADY_EXISTS(
             HttpStatus.CONFLICT,
             "409",
-            "A diary already exists for the target date."
+            "이미 오늘 작성된 일기가 있어 새 대화를 시작할 수 없습니다."
     ),
 
     CONVERSATION_ALREADY_ENDED(
             HttpStatus.CONFLICT,
             "409",
-            "Conversation session already ended."
+            "이미 종료된 대화 세션입니다"
     ),
 
     // 422 UNPROCESSABLE_ENTITY
