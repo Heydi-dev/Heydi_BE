@@ -21,7 +21,7 @@ public class MyPageController {
         User user = authService.getLoginUserFromSession(session);
 
         return ApiResponse.success(
-                "마이페이지 조회 성공",
+                "마이페이지 메인 조회에 성공했습니다.",
                 myPageService.getMyPage(user.getId())
         );
     }

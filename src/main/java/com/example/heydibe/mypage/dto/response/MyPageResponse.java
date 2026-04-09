@@ -10,7 +10,18 @@ import lombok.Getter;
 public class MyPageResponse {
 
     private Long userId;
-    private String username;
     private String nickname;
     private String profileImageUrl;
+
+    private long likedPostCount;
+    private long sharedPostCount;
+
+    private Alarm alarm;
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class Alarm {
+        private boolean enabled;
+    }
 }

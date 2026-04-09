@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class FcmTokenService {
+public class SettingsFcmService {
 
     private final FcmTokenRepository fcmTokenRepository;
 
