@@ -7,6 +7,7 @@ import com.example.heydibe.user.entity.User;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -17,22 +18,30 @@ public class MyPagePostController {
     private final MyPageService myPageService;
 
     @GetMapping("/mypage/shared")
-    public ApiResponse getMySharedPosts(HttpSession session) {
+    public ApiResponse getMySharedPosts(
+            HttpSession session,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         User user = authService.getLoginUserFromSession(session);
 
         return ApiResponse.success(
-                "내가 공유한 글 조회 성공",
+                "내가 공유한 글 목록을 불러왔습니다.",
                 myPageService.getMyPosts(user.getId())
         );
     }
 
     @GetMapping("/mypage/likes")
-    public ApiResponse getMyLikedPosts(HttpSession session) {
+    public ApiResponse getMyLikedPosts(
+            HttpSession session,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         User user = authService.getLoginUserFromSession(session);
 
         return ApiResponse.success(
-                "내가 좋아요 한 글 조회 성공",
-                myPageService.getLikedPosts(user.getId())
+                "좋아요한 글 목록을 불러왔습니다.",
+                myPageService.getLikedPosts(user.getId(), page, size)
         );
     }
 }

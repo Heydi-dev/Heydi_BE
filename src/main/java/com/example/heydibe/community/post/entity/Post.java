@@ -22,26 +22,26 @@ public class Post {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "diary_id", nullable = false, unique = true)
+    @Column(name = "diary_id", nullable = false)
     private Long diaryId;
 
-    @Column(name = "post_title", length = 100)
+    @Column(name = "title", length = 255)
     private String title;
 
-    @Column(name = "post_topic", length = 100)
+    @Column(name = "topic", length = 255)
     private String topic;
 
-    @Column(name = "post_emotion", length = 50)
+    @Column(name = "emotion", length = 50)
     private String emotion;
 
-    @Column(name = "post_content", columnDefinition = "TEXT")
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
-
-    @Column(name = "diary_date")
-    private LocalDate diaryDate;
 
     @Column(name = "status", nullable = false, length = 20)
     private String status;
+
+    @Column(name = "diary_date")
+    private LocalDate diaryDate;
 
     @Column(name = "like_count", nullable = false)
     private int likeCount;
@@ -52,11 +52,15 @@ public class Post {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    public boolean isDraft() {
+        return "DRAFT".equals(this.status);
+    }
 
     public void publish(String title, String topic, String emotion, String content, LocalDate diaryDate) {
         this.title = title;
@@ -68,29 +72,18 @@ public class Post {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public boolean isDraft() {
-        return "DRAFT".equals(this.status);
-    }
-
-    public void increaseLikeCount() {
-        this.likeCount += 1;
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public void decreaseLikeCount() {
-        if (this.likeCount > 0) {
-            this.likeCount -= 1;
-        }
-        this.updatedAt = LocalDateTime.now();
-    }
-
     public void syncLikeCount(int likeCount) {
-        this.likeCount = Math.max(likeCount, 0);
+        this.likeCount = likeCount;
         this.updatedAt = LocalDateTime.now();
     }
 
     public void updateCommentCount(int commentCount) {
         this.commentCount = commentCount;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 }

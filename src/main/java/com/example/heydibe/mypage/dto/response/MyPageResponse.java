@@ -12,10 +12,8 @@ public class MyPageResponse {
     private Long userId;
     private String nickname;
     private String profileImageUrl;
-
     private long likedPostCount;
     private long sharedPostCount;
-
     private Alarm alarm;
 
     @Getter

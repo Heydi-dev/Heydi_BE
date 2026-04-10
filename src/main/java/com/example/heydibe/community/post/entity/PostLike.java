@@ -12,13 +12,15 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "post_like",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "user_id"})
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_post_like_post_user", columnNames = {"post_id", "user_id"})
+        }
 )
 public class PostLike {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "like_id")
+    @Column(name = "post_like_id")
     private Long id;
 
     @Column(name = "post_id", nullable = false)

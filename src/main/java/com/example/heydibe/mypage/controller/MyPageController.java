@@ -2,8 +2,8 @@ package com.example.heydibe.mypage.controller;
 
 import com.example.heydibe.auth.service.AuthService;
 import com.example.heydibe.common.response.ApiResponse;
-import com.example.heydibe.mypage.service.MyPageService;
 import com.example.heydibe.user.entity.User;
+import com.example.heydibe.mypage.service.MyPageService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
