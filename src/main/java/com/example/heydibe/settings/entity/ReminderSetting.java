@@ -27,9 +27,9 @@ public class ReminderSetting {
     @Column(name = "meridiem", length = 2)
     private String meridiem;
 
-    @Column(name = "hour")
+    @Column(name = "alarm_hour")
     private Integer hour;
 
-    @Column(name = "minute")
+    @Column(name = "alarm_minute")
     private Integer minute;
 }
