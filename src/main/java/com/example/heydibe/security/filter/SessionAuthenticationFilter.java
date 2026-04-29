@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,9 +19,10 @@ import java.util.Collections;
 import static com.example.heydibe.security.util.SessionKeys.LOGIN_USER;
 
 /**
- * 세션에서 로그인한 사용자 정보를 읽어 Spring Security의 SecurityContext에 설정하는 필터
- * 삭제된 사용자의 세션을 무효화 처리
+ * Reads the logged-in user from HttpSession and populates SecurityContext.
+ * Invalid sessions for deleted users are cleared immediately.
  */
+@Slf4j
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
     private final UserRepository userRepository;
@@ -32,16 +34,23 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
+
         HttpSession session = request.getSession(false);
-        
-        if (session != null) {
-            Object obj = session.getAttribute(LOGIN_USER);
-            
-            if (obj instanceof Long userId) {
-                // 세션에 저장된 사용자가 실제로 존재하고 삭제되지 않았는지 DB에서 확인
+
+        if (session == null) {
+            if (request.getRequestURI().startsWith("/ws/") && request.getRequestedSessionId() != null) {
+                log.warn(
+                        "SessionAuthenticationFilter found no HttpSession for websocket request. uri={}, requestedSessionId={}, requestedSessionIdValid={}",
+                        request.getRequestURI(),
+                        request.getRequestedSessionId(),
+                        request.isRequestedSessionIdValid()
+                );
+            }
+        } else {
+            Object rawLoginUser = session.getAttribute(LOGIN_USER);
+            if (rawLoginUser instanceof Long userId) {
                 boolean isValidUser = userRepository.findByIdAndDeletedAtIsNull(userId).isPresent();
-                
+
                 if (isValidUser) {
                     // 정상 사용자인 경우만 인증 정보 설정
                     // SecurityContext에 이미 인증 정보가 있으면 덮어쓰지 않음 (OAuth2 등)
@@ -63,9 +72,17 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                     }
                     SecurityContextHolder.clearContext();
                 }
+            } else if (rawLoginUser != null) {
+                log.warn(
+                        "SessionAuthenticationFilter skipped invalid LOGIN_USER. uri={}, sessionId={}, rawType={}, rawValue={}",
+                        request.getRequestURI(),
+                        session.getId(),
+                        rawLoginUser.getClass().getName(),
+                        rawLoginUser
+                );
             }
         }
-        
+
         filterChain.doFilter(request, response);
     }
 }

@@ -86,6 +86,7 @@ app:
       failure-redirect: /login/failure
   ai-server:
     base-url: http://localhost:8000
+    ws-path-template: /api/v1/model/ws/conversations?user_id=%d
     endpoints:
       generate-topic: /api/v1/model/topic
       generate-emotion: /api/v1/model/emotion

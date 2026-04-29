@@ -6,6 +6,7 @@ import com.example.heydibe.infrastructure.oauth.OAuth2SuccessHandler;
 import com.example.heydibe.infrastructure.oauth.OAuth2FailureHandler;
 import com.example.heydibe.security.filter.SessionAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@Slf4j
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -106,6 +108,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/auth/logout",
                     "/auth/withdraw",
+                    "/ws/**",
                     "/mypage/profile/**"
                 ).authenticated()
 
