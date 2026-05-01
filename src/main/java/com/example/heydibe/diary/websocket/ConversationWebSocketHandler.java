@@ -4,6 +4,8 @@ import com.example.heydibe.common.error.ErrorCode;
 import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.diary.service.ConversationSessionService;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
     private static final String TYPE_OUTPUT_TRANSCRIPT = "OUTPUT_TRANSCRIPT";
     private static final String TYPE_AUDIO_CHUNK = "AUDIO_CHUNK";
     private static final String TYPE_TURN_COMPLETE = "TURN_COMPLETE";
+    private static final String TYPE_INPUT_TURN_COMMITTED = "INPUT_TURN_COMMITTED";
     private static final String TYPE_INTERRUPT = "INTERRUPT";
     private static final String TYPE_ERROR = "ERROR";
 
@@ -83,19 +86,12 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
         }
 
         String type = root.path("type").asText();
-        JsonNode data = root.get("data");
 
         try {
             switch (type) {
                 case TYPE_INTERRUPT -> {
                     context.resetAssistantTranscript();
                     sendEnvelope(session, TYPE_INTERRUPT, true);
-                }
-                case TYPE_TURN_COMPLETE -> {
-                    if (asBoolean(data)) {
-                        completeTurn(context, true);
-                    }
-                    sendEnvelope(session, TYPE_TURN_COMPLETE, true);
                 }
                 default -> sendError(session, ErrorCode.WS_UNSUPPORTED_MESSAGE_TYPE);
             }
@@ -186,12 +182,7 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
         switch (type) {
             case "input", "input_transcript" -> handleAiTranscript(context, TYPE_INPUT_TRANSCRIPT, root);
             case "output", "output_transcript" -> handleAiTranscript(context, TYPE_OUTPUT_TRANSCRIPT, root);
-            case "turn_complete" -> {
-                if (extractCompletionSignal(root)) {
-                    completeTurn(context, true);
-                    sendEnvelopeSafely(context, TYPE_TURN_COMPLETE, true);
-                }
-            }
+            case "turn_complete" -> handleAiTurnComplete(context);
             case "interrupt" -> {
                 context.resetAssistantTranscript();
                 sendEnvelopeSafely(context, TYPE_INTERRUPT, true);
@@ -202,38 +193,30 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
 
     private void handleAiTranscript(WsContext context, String eventType, JsonNode root) {
         String transcript = extractTranscript(root);
-        if (transcript != null && !transcript.isBlank()) {
+        boolean hasTranscript = transcript != null && !transcript.isBlank();
+
+        if (hasTranscript) {
             if (TYPE_INPUT_TRANSCRIPT.equals(eventType)) {
                 context.appendUserTranscript(transcript);
             } else {
                 context.appendAssistantTranscript(transcript);
             }
-            sendEnvelopeSafely(context, eventType, transcript.trim());
-        }
 
-        if (readBoolean(root, "finished")) {
-            if (TYPE_INPUT_TRANSCRIPT.equals(eventType)) {
-                context.markInputFinished();
-            } else {
-                context.markOutputFinished();
-            }
+            sendEnvelopeSafely(context, eventType, transcript);
         }
+    }
 
-        if (readBoolean(root, "turn_complete")) {
-            completeTurn(context, true);
-            sendEnvelopeSafely(context, TYPE_TURN_COMPLETE, true);
-            return;
-        }
-
-        if (context.isTurnReady()) {
-            completeTurn(context, false);
-            sendEnvelopeSafely(context, TYPE_TURN_COMPLETE, true);
-        }
+    private void handleAiTurnComplete(WsContext context) {
+        completeTurn(context);
+        sendEnvelopeSafely(context, TYPE_TURN_COMPLETE, true);
     }
 
     private void handleAiBinary(WsContext context, byte[] payload) {
         if (context.isClosing()) {
             return;
+        }
+        if (context.markInputTurnCommitted()) {
+            sendEnvelopeSafely(context, TYPE_INPUT_TURN_COMMITTED, true);
         }
         String base64 = Base64.getEncoder().encodeToString(payload);
         sendEnvelopeSafely(context, TYPE_AUDIO_CHUNK, base64);
@@ -255,77 +238,39 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
         closeContext(context, CloseStatus.SERVER_ERROR, true);
     }
 
-    private void completeTurn(WsContext context, boolean forced) {
-        TurnSnapshot snapshot = context.consumeTurnSnapshot(forced);
+    private void completeTurn(WsContext context) {
+        TurnSnapshot snapshot = context.consumeTurnSnapshot();
         if (snapshot == null) {
             return;
         }
 
         if (!snapshot.userText().isEmpty()) {
             conversationSessionService.saveConversationMessage(
-                    context.userId(), context.diaryId(), "user", snapshot.userText()
+                    context.userId(), context.diaryId(), "USER", snapshot.userText()
             );
         }
         if (!snapshot.assistantText().isEmpty()) {
             conversationSessionService.saveConversationMessage(
-                    context.userId(), context.diaryId(), "assistant", snapshot.assistantText()
+                    context.userId(), context.diaryId(), "AI", snapshot.assistantText()
             );
         }
     }
 
-    private boolean asBoolean(JsonNode data) {
-        if (data == null) {
-            return false;
-        }
-        if (data.isBoolean()) {
-            return data.booleanValue();
-        }
-        return "true".equalsIgnoreCase(data.asText());
-    }
-
-    private boolean extractCompletionSignal(JsonNode root) {
-        if (readBoolean(root, "turn_complete")) {
-            return true;
-        }
-
-        JsonNode data = root.get("data");
-        return data != null && asBoolean(data);
-    }
-
     private String extractTranscript(JsonNode root) {
-        String transcription = trimToNull(root.path("transcription").asText(null));
+        String transcription = root.path("transcription").asText(null);
         if (transcription != null) {
             return transcription;
         }
 
         JsonNode data = root.get("data");
         if (data != null && data.isTextual()) {
-            return trimToNull(data.asText());
+            return data.asText();
         }
         return null;
     }
 
-    private boolean readBoolean(JsonNode root, String fieldName) {
-        JsonNode node = root.get(fieldName);
-        if (node == null || node.isNull()) {
-            return false;
-        }
-        if (node.isBoolean()) {
-            return node.booleanValue();
-        }
-        return "true".equalsIgnoreCase(node.asText());
-    }
-
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
     private void sendEnvelope(WebSocketSession session, String type, Object data) throws Exception {
-        WsEnvelope envelope = new WsEnvelope(type, data);
+        WsEnvelope envelope = new WsEnvelope(type, data, null);
         String json = objectMapper.writeValueAsString(envelope);
         session.sendMessage(new TextMessage(json.getBytes(StandardCharsets.UTF_8)));
     }
@@ -394,8 +339,7 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
         private final Object lock = new Object();
         private final AtomicBoolean closing = new AtomicBoolean(false);
 
-        private boolean inputFinished;
-        private boolean outputFinished;
+        private boolean inputTurnCommitted;
         private volatile AiRealtimeBridgeClient.AiBridgeSession aiSession;
 
         private WsContext(String sessionId, WebSocketSession frontendSession, Long userId, Long diaryId) {
@@ -447,56 +391,42 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
 
         private void append(StringBuilder target, String text) {
             synchronized (lock) {
-                String trimmed = text == null ? null : text.trim();
-                if (trimmed == null || trimmed.isBlank()) {
+                if (text == null || text.isBlank()) {
                     return;
                 }
-                if (!target.isEmpty()) {
-                    target.append(' ');
-                }
-                target.append(trimmed);
-            }
-        }
-
-        private void markInputFinished() {
-            synchronized (lock) {
-                inputFinished = true;
-            }
-        }
-
-        private void markOutputFinished() {
-            synchronized (lock) {
-                outputFinished = true;
-            }
-        }
-
-        private boolean isTurnReady() {
-            synchronized (lock) {
-                return inputFinished && outputFinished;
+                target.append(text);
             }
         }
 
         private void resetAssistantTranscript() {
             synchronized (lock) {
                 assistantTranscript.setLength(0);
-                outputFinished = false;
+                inputTurnCommitted = false;
             }
         }
 
-        private TurnSnapshot consumeTurnSnapshot(boolean forced) {
+        private TurnSnapshot consumeTurnSnapshot() {
             synchronized (lock) {
-                if (!forced && !(inputFinished && outputFinished)) {
+                String userText = userTranscript.toString().trim();
+                String assistantText = assistantTranscript.toString().trim();
+                if (userText.isEmpty() && assistantText.isEmpty()) {
                     return null;
                 }
 
-                String userText = userTranscript.toString().trim();
-                String assistantText = assistantTranscript.toString().trim();
-
                 userTranscript.setLength(0);
                 assistantTranscript.setLength(0);
-                inputFinished = false;
-                outputFinished = false;
+                inputTurnCommitted = false;
                 return new TurnSnapshot(userText, assistantText);
+            }
+        }
+
+        private boolean markInputTurnCommitted() {
+            synchronized (lock) {
+                if (inputTurnCommitted) {
+                    return false;
+                }
+                inputTurnCommitted = true;
+                return true;
             }
         }
     }
@@ -504,6 +434,11 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
     private record TurnSnapshot(String userText, String assistantText) {
     }
 
-    private record WsEnvelope(String type, Object data) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private record WsEnvelope(
+            String type,
+            Object data,
+            @JsonProperty("turn_complete") Boolean turnComplete
+    ) {
     }
 }

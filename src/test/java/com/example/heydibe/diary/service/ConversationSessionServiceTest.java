@@ -99,13 +99,13 @@ class ConversationSessionServiceTest {
 
         DiaryConversation userMessage = DiaryConversation.builder()
                 .diary(diary)
-                .sender("user")
+                .sender("USER")
                 .messageText("오늘 너무 피곤했어.")
                 .createdAt(LocalDateTime.of(2025, 11, 21, 21, 3, 10))
                 .build();
         DiaryConversation assistantMessage = DiaryConversation.builder()
                 .diary(diary)
-                .sender("assistant")
+                .sender("AI")
                 .messageText("요즘 많이 바빴나 봐요.")
                 .createdAt(LocalDateTime.of(2025, 11, 21, 21, 3, 11))
                 .build();
@@ -118,10 +118,29 @@ class ConversationSessionServiceTest {
                 conversationSessionService.getMessageHistory(userId, diaryId, 0, 20);
 
         assertThat(response.getMessages()).hasSize(2);
-        assertThat(response.getMessages().get(0).getRole()).isEqualTo("user");
+        assertThat(response.getMessages().get(0).getRole()).isEqualTo("USER");
         assertThat(response.getMessages().get(0).getText()).isEqualTo("오늘 너무 피곤했어.");
-        assertThat(response.getMessages().get(1).getRole()).isEqualTo("assistant");
+        assertThat(response.getMessages().get(1).getRole()).isEqualTo("AI");
         assertThat(response.getMessages().get(1).getText()).isEqualTo("요즘 많이 바빴나 봐요.");
+    }
+
+    @Test
+    void saveConversationMessage_normalizesSenderBeforeSave() {
+        Long userId = 1L;
+        Long diaryId = 21L;
+        User user = createUser(userId);
+        Diary diary = createDiary(diaryId, user, "ACTIVE");
+
+        when(diaryRepository.findByIdAndDeletedAtIsNull(diaryId)).thenReturn(Optional.of(diary));
+
+        conversationSessionService.saveConversationMessage(userId, diaryId, "assistant", "hello");
+
+        ArgumentCaptor<DiaryConversation> conversationCaptor = ArgumentCaptor.forClass(DiaryConversation.class);
+        verify(diaryConversationRepository).save(conversationCaptor.capture());
+
+        DiaryConversation saved = conversationCaptor.getValue();
+        assertThat(saved.getSender()).isEqualTo("AI");
+        assertThat(saved.getMessageText()).isEqualTo("hello");
     }
 
     @Test
@@ -137,13 +156,13 @@ class ConversationSessionServiceTest {
 
         DiaryConversation c1 = DiaryConversation.builder()
                 .diary(diary)
-                .sender("assistant")
+                .sender("AI")
                 .messageText("오늘은 무슨 일이 있었나요?")
                 .createdAt(LocalDateTime.of(2025, 11, 21, 21, 3, 0))
                 .build();
         DiaryConversation c2 = DiaryConversation.builder()
                 .diary(diary)
-                .sender("user")
+                .sender("USER")
                 .messageText("출근길에 비가 와서 우산을 챙겼어.")
                 .createdAt(LocalDateTime.of(2025, 11, 21, 21, 3, 5))
                 .build();

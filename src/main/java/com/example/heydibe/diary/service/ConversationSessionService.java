@@ -144,7 +144,7 @@ public class ConversationSessionService {
 
         DiaryConversation conversation = DiaryConversation.builder()
                 .diary(diary)
-                .sender(sender)
+                .sender(normalizeSenderForSave(sender))
                 .messageText(message)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -216,7 +216,7 @@ public class ConversationSessionService {
 
         String generatedEmotion = aiService.generateEmotion(content);
         String normalizedEmotion = normalizeEmotion(generatedEmotion);
-        diary.setMainEmotion(normalizedEmotion != null ? normalizedEmotion : "neutral");
+        diary.setMainEmotion(normalizedEmotion != null ? normalizedEmotion : "무난함");
 
         List<String> generatedTopics = aiService.generateTopics(content);
         List<String> topics = normalizeTopics(generatedTopics);
@@ -241,8 +241,8 @@ public class ConversationSessionService {
 
         List<Map<String, String>> turns = new ArrayList<>();
         for (DiaryConversation msg : sorted) {
-            String text = msg.getMessageText() == null ? "" : msg.getMessageText().trim();
-            if (text.isEmpty()) {
+            String text = msg.getMessageText() == null ? "" : msg.getMessageText();
+            if (text.isBlank()) {
                 continue;
             }
 
@@ -272,6 +272,18 @@ public class ConversationSessionService {
             return "assistant";
         }
         return "user";
+    }
+
+    private String normalizeSenderForSave(String sender) {
+        if (sender == null || sender.isBlank()) {
+            return "USER";
+        }
+
+        String value = sender.trim().toLowerCase(Locale.ROOT);
+        if ("assistant".equals(value) || "ai".equals(value)) {
+            return "AI";
+        }
+        return "USER";
     }
 
     private String buildFallbackDiary(List<Map<String, String>> turns) {

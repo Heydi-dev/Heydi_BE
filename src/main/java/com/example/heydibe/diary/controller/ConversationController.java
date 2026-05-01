@@ -41,9 +41,9 @@ public class ConversationController {
 
     @GetMapping("/api/conversations/sessions/{diaryId}/messages")
     public ApiResponse<ConversationMessageHistoryResponse> getMessages(
-            @PathVariable Long diaryId,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "20") Integer size,
+            @PathVariable("diaryId") Long diaryId,
+            @RequestParam(name = "page", defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "20") Integer size,
             HttpSession session
     ) {
         User user = authService.getLoginUserFromSession(session);
@@ -54,7 +54,7 @@ public class ConversationController {
 
     @PostMapping("/api/conversations/sessions/{diaryId}/end")
     public ApiResponse<ConversationSessionEndResponse> endSession(
-            @PathVariable Long diaryId,
+            @PathVariable("diaryId") Long diaryId,
             @RequestBody(required = false) ConversationSessionEndRequest request,
             HttpSession session
     ) {

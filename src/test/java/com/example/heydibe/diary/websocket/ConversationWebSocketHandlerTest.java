@@ -23,7 +23,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,11 +37,8 @@ class ConversationWebSocketHandlerTest {
     @Mock
     private WebSocketSession session;
 
-    // ==================== 성공 케이스 ====================
-
     @Test
-    void aiFinishedEvents_saveMessagesAndSendTurnComplete() throws Exception {
-        // 성공: AI input/output finished 이벤트가 모두 오면 turn 저장 후 TURN_COMPLETE를 전송한다.
+    void aiTurnCompleteEvent_savesMessagesAndSendsTurnComplete() throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         FakeAiRealtimeBridgeClient fakeBridgeClient = new FakeAiRealtimeBridgeClient();
         ConversationWebSocketHandler handler =
@@ -58,23 +54,86 @@ class ConversationWebSocketHandlerTest {
 
         handler.afterConnectionEstablished(session);
 
-        fakeBridgeClient.emitText("{\"type\":\"input\",\"transcription\":\"오늘\",\"finished\":false}");
-        fakeBridgeClient.emitText("{\"type\":\"input\",\"transcription\":\"너무 피곤했어\",\"finished\":true}");
-        fakeBridgeClient.emitText("{\"type\":\"output\",\"transcription\":\"오늘 정말 고생 많았어요\",\"finished\":true}");
+        fakeBridgeClient.emitText("{\"type\":\"input\",\"transcription\":\"today \"}");
+        fakeBridgeClient.emitText("{\"type\":\"input\",\"transcription\":\"I am tired\"}");
+        fakeBridgeClient.emitText("{\"type\":\"output\",\"transcription\":\"Take a good rest\"}");
+        fakeBridgeClient.emitText("{\"type\":\"turn_complete\"}");
 
-        verify(conversationSessionService).saveConversationMessage(1L, 55L, "user", "오늘 너무 피곤했어");
-        verify(conversationSessionService).saveConversationMessage(1L, 55L, "assistant", "오늘 정말 고생 많았어요");
+        verify(conversationSessionService).saveConversationMessage(1L, 55L, "USER", "today I am tired");
+        verify(conversationSessionService).saveConversationMessage(1L, 55L, "AI", "Take a good rest");
 
         ArgumentCaptor<WebSocketMessage<?>> messageCaptor = ArgumentCaptor.forClass(WebSocketMessage.class);
         verify(session, atLeastOnce()).sendMessage(messageCaptor.capture());
         List<WebSocketMessage<?>> sentMessages = messageCaptor.getAllValues();
         TextMessage lastMessage = (TextMessage) sentMessages.get(sentMessages.size() - 1);
-        assertThat(lastMessage.getPayload()).contains("\"type\":\"TURN_COMPLETE\"");
+        JsonNode lastRoot = objectMapper.readTree(lastMessage.getPayload());
+
+        assertThat(lastRoot.path("type").asText()).isEqualTo("TURN_COMPLETE");
+        assertThat(lastRoot.path("data").asBoolean()).isTrue();
+    }
+
+    @Test
+    void transcriptEventsBeforeTurnCompletion_doNotSaveMessages() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+        FakeAiRealtimeBridgeClient fakeBridgeClient = new FakeAiRealtimeBridgeClient();
+        ConversationWebSocketHandler handler =
+                new ConversationWebSocketHandler(objectMapper, conversationSessionService, fakeBridgeClient);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("userId", 1L);
+        attributes.put("diaryId", 55L);
+
+        when(session.getId()).thenReturn("ws-1");
+        when(session.getAttributes()).thenReturn(attributes);
+        when(conversationSessionService.getOwnedActiveSession(1L, 55L)).thenReturn(new Diary());
+
+        handler.afterConnectionEstablished(session);
+
+        fakeBridgeClient.emitText("{\"type\":\"input\",\"transcription\":\"today\",\"finished\":true}");
+
+        ArgumentCaptor<WebSocketMessage<?>> messageCaptor = ArgumentCaptor.forClass(WebSocketMessage.class);
+        verify(session, atLeastOnce()).sendMessage(messageCaptor.capture());
+        TextMessage lastMessage = (TextMessage) messageCaptor.getAllValues()
+                .get(messageCaptor.getAllValues().size() - 1);
+        JsonNode lastRoot = objectMapper.readTree(lastMessage.getPayload());
+
+        assertThat(lastRoot.path("type").asText()).isEqualTo("INPUT_TRANSCRIPT");
+        assertThat(lastRoot.path("data").asText()).isEqualTo("today");
+        assertThat(lastRoot.path("turn_complete").isMissingNode()).isTrue();
+        verify(conversationSessionService, never()).saveConversationMessage(any(), any(), any(), any());
+    }
+
+    @Test
+    void transcriptWhitespace_isPreservedUntilAccumulatedTurnIsTrimmed() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+        FakeAiRealtimeBridgeClient fakeBridgeClient = new FakeAiRealtimeBridgeClient();
+        ConversationWebSocketHandler handler =
+                new ConversationWebSocketHandler(objectMapper, conversationSessionService, fakeBridgeClient);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("userId", 1L);
+        attributes.put("diaryId", 55L);
+
+        when(session.getId()).thenReturn("ws-whitespace");
+        when(session.getAttributes()).thenReturn(attributes);
+        when(conversationSessionService.getOwnedActiveSession(1L, 55L)).thenReturn(new Diary());
+
+        handler.afterConnectionEstablished(session);
+
+        fakeBridgeClient.emitText("{\"type\":\"input\",\"transcription\":\"  hello  \"}");
+        fakeBridgeClient.emitText("{\"type\":\"input\",\"transcription\":\"  world  \"}");
+        fakeBridgeClient.emitText("{\"type\":\"turn_complete\"}");
+
+        ArgumentCaptor<WebSocketMessage<?>> messageCaptor = ArgumentCaptor.forClass(WebSocketMessage.class);
+        verify(session, atLeastOnce()).sendMessage(messageCaptor.capture());
+
+        JsonNode firstTranscript = objectMapper.readTree(((TextMessage) messageCaptor.getAllValues().get(0)).getPayload());
+        assertThat(firstTranscript.path("data").asText()).isEqualTo("  hello  ");
+        verify(conversationSessionService).saveConversationMessage(1L, 55L, "USER", "hello    world");
     }
 
     @Test
     void binaryFromFrontend_isForwardedToAi() throws Exception {
-        // 성공: 프론트 raw PCM binary는 AI websocket으로 그대로 전달된다.
         ObjectMapper objectMapper = new ObjectMapper();
         FakeAiRealtimeBridgeClient fakeBridgeClient = new FakeAiRealtimeBridgeClient();
         ConversationWebSocketHandler handler =
@@ -97,11 +156,42 @@ class ConversationWebSocketHandlerTest {
         assertThat(fakeBridgeClient.session.binaryPayloads.get(0)).containsExactly(payload);
     }
 
-    // ==================== 실패 케이스 ====================
+    @Test
+    void firstAiAudioChunk_sendsInputTurnCommittedOnceBeforeAudioChunk() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+        FakeAiRealtimeBridgeClient fakeBridgeClient = new FakeAiRealtimeBridgeClient();
+        ConversationWebSocketHandler handler =
+                new ConversationWebSocketHandler(objectMapper, conversationSessionService, fakeBridgeClient);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("userId", 1L);
+        attributes.put("diaryId", 55L);
+
+        when(session.getId()).thenReturn("ws-4");
+        when(session.getAttributes()).thenReturn(attributes);
+        when(conversationSessionService.getOwnedActiveSession(1L, 55L)).thenReturn(new Diary());
+
+        handler.afterConnectionEstablished(session);
+
+        fakeBridgeClient.emitBinary(new byte[]{1, 2});
+        fakeBridgeClient.emitBinary(new byte[]{3, 4});
+
+        ArgumentCaptor<WebSocketMessage<?>> messageCaptor = ArgumentCaptor.forClass(WebSocketMessage.class);
+        verify(session, atLeastOnce()).sendMessage(messageCaptor.capture());
+
+        List<JsonNode> sentRoots = new ArrayList<>();
+        for (WebSocketMessage<?> sentMessage : messageCaptor.getAllValues()) {
+            TextMessage textMessage = (TextMessage) sentMessage;
+            sentRoots.add(objectMapper.readTree(textMessage.getPayload()));
+        }
+
+        assertThat(sentRoots.stream().map(root -> root.path("type").asText()).toList())
+                .containsExactly("INPUT_TURN_COMMITTED", "AUDIO_CHUNK", "AUDIO_CHUNK");
+        assertThat(sentRoots.get(0).path("data").asBoolean()).isTrue();
+    }
 
     @Test
     void unsupportedMessageType_sendsErrorEnvelope() throws Exception {
-        // 실패: 프론트에서 지원하지 않는 type 전송 시 ERROR(code=400)를 반환한다.
         ObjectMapper objectMapper = new ObjectMapper();
         FakeAiRealtimeBridgeClient fakeBridgeClient = new FakeAiRealtimeBridgeClient();
         ConversationWebSocketHandler handler =
@@ -133,7 +223,6 @@ class ConversationWebSocketHandlerTest {
 
     @Test
     void missingConnectionAttributes_sendsAuthErrorAndCloses() throws Exception {
-        // 실패: 핸드셰이크 속성(userId/diaryId) 누락 시 ERROR(code=401) 후 연결을 종료한다.
         ObjectMapper objectMapper = new ObjectMapper();
         FakeAiRealtimeBridgeClient fakeBridgeClient = new FakeAiRealtimeBridgeClient();
         ConversationWebSocketHandler handler =
@@ -170,6 +259,12 @@ class ConversationWebSocketHandlerTest {
                 listener.onText(payload);
             }
         }
+
+        private void emitBinary(byte[] payload) {
+            if (listener != null) {
+                listener.onBinary(payload);
+            }
+        }
     }
 
     private static final class FakeAiBridgeSession implements AiRealtimeBridgeClient.AiBridgeSession {
@@ -186,4 +281,3 @@ class ConversationWebSocketHandlerTest {
         }
     }
 }
-
