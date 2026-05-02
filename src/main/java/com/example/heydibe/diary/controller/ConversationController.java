@@ -36,7 +36,7 @@ public class ConversationController {
         User user = authService.getLoginUserFromSession(session);
         ConversationSessionStartResponse response = conversationSessionService.startSession(user.getId(), request);
         return ResponseEntity.status(201)
-                .body(ApiResponse.success(201, "Conversation session started", response));
+                .body(ApiResponse.success(201, "대화 세션 시작됨", response));
     }
 
     @GetMapping("/api/conversations/sessions/{diaryId}/messages")
@@ -49,7 +49,7 @@ public class ConversationController {
         User user = authService.getLoginUserFromSession(session);
         ConversationMessageHistoryResponse response =
                 conversationSessionService.getMessageHistory(user.getId(), diaryId, page, size);
-        return ApiResponse.success("Conversation message history fetched", response);
+        return ApiResponse.success("대화 메세지 히스토리 조회 성공", response);
     }
 
     @PostMapping("/api/conversations/sessions/{diaryId}/end")
@@ -60,6 +60,6 @@ public class ConversationController {
     ) {
         User user = authService.getLoginUserFromSession(session);
         ConversationSessionEndResponse response = conversationSessionService.endSession(user.getId(), diaryId, request);
-        return ApiResponse.success("Session ended and diary generated", response);
+        return ApiResponse.success("세션 종료 및 일기 생성 성공", response);
     }
 }

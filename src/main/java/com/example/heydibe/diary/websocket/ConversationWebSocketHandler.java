@@ -200,6 +200,10 @@ public class ConversationWebSocketHandler extends AbstractWebSocketHandler {
                 context.appendUserTranscript(transcript);
             } else {
                 context.appendAssistantTranscript(transcript);
+
+                if (context.markInputTurnCommitted()) {
+                    sendEnvelopeSafely(context, TYPE_INPUT_TURN_COMMITTED, true);
+                }
             }
 
             sendEnvelopeSafely(context, eventType, transcript);
