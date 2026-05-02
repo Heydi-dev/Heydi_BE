@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   application:
     name: Heydi-BE
   datasource:
@@ -35,7 +35,7 @@ spring:
     oauth2:
       client:
         registration:
-        # 구글 아이디 및 시크릿 키
+        # 구글 OAuth2 클라이언트
           google:
             client-id: YOUR_GOOGLE_CLIENT_ID
             client-secret: YOUR_GOOGLE_CLIENT_SECRET
@@ -43,7 +43,7 @@ spring:
             scope:
               - email
               - profile
-          # 카카오 아이디 및 시크릿 키
+          # 카카오 OAuth2 클라이언트
           kakao:
             client-id: YOUR_KAKAO_CLIENT_ID
             client-secret: YOUR_KAKAO_CLIENT_SECRET
@@ -86,5 +86,10 @@ app:
       failure-redirect: /login/failure
   ai-server:
     base-url: http://localhost:8000
+    ws-path-template: /api/v1/model/ws/conversations?user_id=%d
+    endpoints:
+      generate-topic: /api/v1/model/topic
+      generate-emotion: /api/v1/model/emotion
+      generate-diary: /api/v1/model/diary
+      generate-summary: /api/v1/model/summary
 
-    

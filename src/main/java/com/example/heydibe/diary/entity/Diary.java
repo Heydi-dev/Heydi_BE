@@ -1,5 +1,6 @@
 package com.example.heydibe.diary.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.example.heydibe.user.entity.User;
@@ -63,6 +64,12 @@ public class Diary {
 
     @Column(name = "conversation_duration_seconds")
     private int conversationDurationSeconds;
+
+    @Column(name = "diary_date")
+    private LocalDate diaryDate;
+
+    @Column(name = "conversation_status", length = 20)
+    private String conversationStatus;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

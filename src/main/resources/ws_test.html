@@ -1,0 +1,1558 @@
+<!--
+  Standalone client for client -> Heydi BE -> AI server websocket testing.
+  Serve this file over HTTP so microphone APIs are available, for example:
+    cd src/main/resources
+    python -m http.server 5500
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Heydi Conversation WebSocket Test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f6f8;
+        --panel: #ffffff;
+        --panel-border: #d8dee8;
+        --text: #17202a;
+        --muted: #667085;
+        --accent: #0f766e;
+        --accent-strong: #115e59;
+        --blue: #2563eb;
+        --danger: #b42318;
+        --warn: #a15c07;
+        --ok-bg: #dff7ee;
+        --ok-text: #0b5d43;
+        --off-bg: #eaecf0;
+        --off-text: #475467;
+        --error-bg: #fee4e2;
+        --error-text: #912018;
+        --code-bg: #111827;
+        --code-text: #e5e7eb;
+        --shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--panel-border);
+        background: var(--panel);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      h2 {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      h3 {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+        gap: 16px;
+        width: min(1440px, 100%);
+        margin: 0 auto;
+        padding: 16px;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .panel {
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        min-width: 0;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--panel-border);
+      }
+
+      .panel-body {
+        padding: 16px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .field-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      label {
+        color: #344054;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid #c9d2df;
+        border-radius: 6px;
+        background: #ffffff;
+        color: var(--text);
+        font: inherit;
+        letter-spacing: 0;
+      }
+
+      input,
+      select {
+        height: 38px;
+        padding: 8px 10px;
+      }
+
+      textarea {
+        min-height: 132px;
+        resize: vertical;
+        padding: 10px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        min-width: 16px;
+        margin: 0;
+      }
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 36px;
+        min-width: 88px;
+        border: 1px solid #b8c2cf;
+        border-radius: 6px;
+        padding: 8px 12px;
+        background: #ffffff;
+        color: #182230;
+        font: inherit;
+        font-weight: 700;
+        letter-spacing: 0;
+        cursor: pointer;
+      }
+
+      button:hover:not(:disabled) {
+        background: #f8fafc;
+        border-color: #98a2b3;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.48;
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #ffffff;
+      }
+
+      button.primary:hover:not(:disabled) {
+        border-color: var(--accent-strong);
+        background: var(--accent-strong);
+      }
+
+      button.blue {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: #ffffff;
+      }
+
+      button.danger {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .statusbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 24px;
+        border-radius: 999px;
+        padding: 3px 9px;
+        background: var(--off-bg);
+        color: var(--off-text);
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .badge.on {
+        background: var(--ok-bg);
+        color: var(--ok-text);
+      }
+
+      .badge.error {
+        background: var(--error-bg);
+        color: var(--error-text);
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric {
+        border: 1px solid var(--panel-border);
+        border-radius: 6px;
+        padding: 10px;
+        background: #fbfcfe;
+        min-width: 0;
+      }
+
+      .metric .name {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .metric .value {
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .meter {
+        width: 100%;
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e6eaf0;
+      }
+
+      .meter > span {
+        display: block;
+        width: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #0f766e, #2563eb);
+      }
+
+      .transcripts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .transcript-box {
+        min-height: 120px;
+        border: 1px solid var(--panel-border);
+        border-radius: 6px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+
+      .transcript-box .text {
+        margin-top: 8px;
+        min-height: 72px;
+        max-height: 220px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #1d2939;
+      }
+
+      .log-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      #log {
+        height: 520px;
+        overflow: auto;
+        border-radius: 6px;
+        background: var(--code-bg);
+        color: var(--code-text);
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .log-line {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 8px 10px;
+      }
+
+      .log-line .head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        color: #f9fafb;
+      }
+
+      .log-line .time {
+        color: #9ca3af;
+      }
+
+      .log-line .dir {
+        min-width: 34px;
+        color: #93c5fd;
+        font-weight: 800;
+      }
+
+      .log-line .dir.out {
+        color: #86efac;
+      }
+
+      .log-line .dir.err {
+        color: #fca5a5;
+      }
+
+      .log-line .detail,
+      .log-line pre {
+        margin: 5px 0 0;
+        color: #d1d5db;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .log-line pre {
+        max-height: 220px;
+        overflow: auto;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .spacer {
+        height: 12px;
+      }
+
+      @media (max-width: 980px) {
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        header,
+        main {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+
+        .grid-2,
+        .grid-3,
+        .metric-grid,
+        .transcripts {
+          grid-template-columns: 1fr;
+        }
+
+        button {
+          flex: 1 1 128px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Heydi Conversation WebSocket Test</h1>
+        <div class="muted">Client - Backend - AI realtime path</div>
+      </div>
+      <div class="statusbar">
+        <span id="loginBadge" class="badge">LOGIN OFF</span>
+        <span id="sessionBadge" class="badge">SESSION OFF</span>
+        <span id="wsBadge" class="badge">WS CLOSED</span>
+        <span id="micBadge" class="badge">MIC OFF</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="stack">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Connection</h2>
+          </div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <div class="field">
+                <label for="apiBase">Backend HTTP base</label>
+                <input id="apiBase" value="http://localhost:8080" />
+              </div>
+              <div class="field">
+                <label for="wsPath">WebSocket path</label>
+                <input id="wsPath" value="/ws/conversations" />
+              </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label for="username">Username</label>
+                <input id="username" autocomplete="username" />
+              </div>
+              <div class="field">
+                <label for="password">Password</label>
+                <input id="password" type="password" autocomplete="current-password" />
+              </div>
+              <div class="field">
+                <label for="fcmToken">FCM token</label>
+                <input id="fcmToken" value="ws-test-token" />
+              </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="actions">
+              <button id="btnLogin" class="primary">Login</button>
+              <button id="btnLogout">Logout</button>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="targetDate">Target date</label>
+                <input id="targetDate" type="date" />
+              </div>
+              <div class="field">
+                <label for="diaryId">Diary ID</label>
+                <input id="diaryId" placeholder="Created by start session" />
+              </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="actions">
+              <button id="btnStartSession" class="blue">Start session</button>
+              <button id="btnFetchMessages">Fetch messages</button>
+              <button id="btnEndSession">End session</button>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="field-row">
+              <input id="generateDiary" type="checkbox" checked />
+              <label for="generateDiary">generateDiary on end</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>WebSocket</h2>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="resolvedWsUrl">Resolved URL</label>
+              <input id="resolvedWsUrl" readonly />
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="actions">
+              <button id="btnConnect" class="primary">Connect WS</button>
+              <button id="btnDisconnect">Disconnect</button>
+              <button id="btnInterrupt" class="danger">Interrupt</button>
+              <button id="btnTurnComplete">Turn complete</button>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="field">
+              <label for="customMessage">Custom text message</label>
+              <textarea id="customMessage">{
+  "type": "TURN_COMPLETE",
+  "data": true
+}</textarea>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="actions">
+              <button id="btnSendCustom">Send custom</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Audio I/O</h2>
+          </div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <div class="field">
+                <label for="sendSampleRate">Send sample rate</label>
+                <input id="sendSampleRate" type="number" min="8000" max="48000" value="16000" />
+              </div>
+              <div class="field">
+                <label for="recvSampleRate">Receive sample rate</label>
+                <input id="recvSampleRate" type="number" min="8000" max="48000" value="24000" />
+              </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="grid-3">
+              <div class="field-row">
+                <input id="echoCancellation" type="checkbox" checked />
+                <label for="echoCancellation">echo cancellation</label>
+              </div>
+              <div class="field-row">
+                <input id="noiseSuppression" type="checkbox" checked />
+                <label for="noiseSuppression">noise suppression</label>
+              </div>
+              <div class="field-row">
+                <input id="autoGainControl" type="checkbox" checked />
+                <label for="autoGainControl">auto gain</label>
+              </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="actions">
+              <button id="btnStartMic" class="primary">Start mic</button>
+              <button id="btnStopMic">Stop mic</button>
+              <button id="btnClearPlayback">Clear playback</button>
+              <button id="btnDownloadAudio">Save received WAV</button>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="field">
+              <label>Input level</label>
+              <div class="meter"><span id="inputMeter"></span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Traffic</h2>
+          </div>
+          <div class="panel-body">
+            <div class="metric-grid">
+              <div class="metric">
+                <div class="name">WS sent</div>
+                <div id="wsSentCount" class="value">0</div>
+              </div>
+              <div class="metric">
+                <div class="name">WS received</div>
+                <div id="wsRecvCount" class="value">0</div>
+              </div>
+              <div class="metric">
+                <div class="name">Mic bytes</div>
+                <div id="micBytes" class="value">0</div>
+              </div>
+              <div class="metric">
+                <div class="name">AI audio bytes</div>
+                <div id="aiBytes" class="value">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Transcripts</h2>
+          </div>
+          <div class="panel-body">
+            <div class="transcripts">
+              <div class="transcript-box">
+                <h3>Input transcript</h3>
+                <div id="inputTranscript" class="text muted">No input transcript yet.</div>
+              </div>
+              <div class="transcript-box">
+                <h3>Output transcript</h3>
+                <div id="outputTranscript" class="text muted">No output transcript yet.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header log-toolbar">
+            <h2>Logs</h2>
+            <div class="actions">
+              <button id="btnClearLogs">Clear</button>
+              <button id="btnExportLogs">Export JSONL</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="grid-3">
+              <div class="field-row">
+                <input id="logAudioChunks" type="checkbox" checked />
+                <label for="logAudioChunks">audio chunk logs</label>
+              </div>
+              <div class="field-row">
+                <input id="logRawText" type="checkbox" checked />
+                <label for="logRawText">raw text logs</label>
+              </div>
+              <div class="field-row">
+                <input id="autoScrollLogs" type="checkbox" checked />
+                <label for="autoScrollLogs">auto scroll</label>
+              </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div id="log" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        const $ = (id) => document.getElementById(id);
+
+        const els = {
+          apiBase: $("apiBase"),
+          wsPath: $("wsPath"),
+          username: $("username"),
+          password: $("password"),
+          fcmToken: $("fcmToken"),
+          targetDate: $("targetDate"),
+          diaryId: $("diaryId"),
+          generateDiary: $("generateDiary"),
+          resolvedWsUrl: $("resolvedWsUrl"),
+          customMessage: $("customMessage"),
+          sendSampleRate: $("sendSampleRate"),
+          recvSampleRate: $("recvSampleRate"),
+          echoCancellation: $("echoCancellation"),
+          noiseSuppression: $("noiseSuppression"),
+          autoGainControl: $("autoGainControl"),
+          logAudioChunks: $("logAudioChunks"),
+          logRawText: $("logRawText"),
+          autoScrollLogs: $("autoScrollLogs"),
+          loginBadge: $("loginBadge"),
+          sessionBadge: $("sessionBadge"),
+          wsBadge: $("wsBadge"),
+          micBadge: $("micBadge"),
+          inputMeter: $("inputMeter"),
+          inputTranscript: $("inputTranscript"),
+          outputTranscript: $("outputTranscript"),
+          wsSentCount: $("wsSentCount"),
+          wsRecvCount: $("wsRecvCount"),
+          micBytes: $("micBytes"),
+          aiBytes: $("aiBytes"),
+          log: $("log"),
+        };
+
+        const buttons = {
+          login: $("btnLogin"),
+          logout: $("btnLogout"),
+          startSession: $("btnStartSession"),
+          fetchMessages: $("btnFetchMessages"),
+          endSession: $("btnEndSession"),
+          connect: $("btnConnect"),
+          disconnect: $("btnDisconnect"),
+          interrupt: $("btnInterrupt"),
+          turnComplete: $("btnTurnComplete"),
+          sendCustom: $("btnSendCustom"),
+          startMic: $("btnStartMic"),
+          stopMic: $("btnStopMic"),
+          clearPlayback: $("btnClearPlayback"),
+          downloadAudio: $("btnDownloadAudio"),
+          clearLogs: $("btnClearLogs"),
+          exportLogs: $("btnExportLogs"),
+        };
+
+        const state = {
+          ws: null,
+          micStream: null,
+          micCtx: null,
+          workletNode: null,
+          playCtx: null,
+          playTime: 0,
+          scheduledSources: new Set(),
+          receivedAudio: [],
+          loggedIn: false,
+          sessionActive: false,
+          recording: false,
+          counters: {
+            wsSent: 0,
+            wsReceived: 0,
+            micBytes: 0,
+            aiBytes: 0,
+            micChunks: 0,
+            aiChunks: 0,
+          },
+          logs: [],
+        };
+
+        function nowTime() {
+          return new Date().toISOString();
+        }
+
+        function shortTime(iso) {
+          const date = new Date(iso);
+          return date.toLocaleTimeString("en-US", { hour12: false });
+        }
+
+        function formatBytes(bytes) {
+          if (!Number.isFinite(bytes)) return "0";
+          if (bytes < 1024) return String(bytes);
+          if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}K`;
+          return `${(bytes / (1024 * 1024)).toFixed(2)}M`;
+        }
+
+        function preview(value, max = 3200) {
+          const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+          if (text.length <= max) return text;
+          return `${text.slice(0, max)}\n... truncated ${text.length - max} chars`;
+        }
+
+        function logEvent(direction, title, detail = "", raw = null) {
+          const entry = {
+            ts: nowTime(),
+            direction,
+            title,
+            detail,
+            raw,
+          };
+          state.logs.push(entry);
+          renderLogLine(entry);
+        }
+
+        function renderLogLine(entry) {
+          const line = document.createElement("div");
+          line.className = "log-line";
+
+          const head = document.createElement("div");
+          head.className = "head";
+
+          const time = document.createElement("span");
+          time.className = "time";
+          time.textContent = shortTime(entry.ts);
+
+          const dir = document.createElement("span");
+          dir.className =
+            "dir" +
+            (entry.direction === "OUT" ? " out" : "") +
+            (entry.direction === "ERR" ? " err" : "");
+          dir.textContent = entry.direction;
+
+          const title = document.createElement("span");
+          title.textContent = entry.title;
+
+          head.append(time, dir, title);
+          line.appendChild(head);
+
+          if (entry.detail) {
+            const detail = document.createElement("div");
+            detail.className = "detail";
+            detail.textContent = entry.detail;
+            line.appendChild(detail);
+          }
+
+          if (entry.raw != null && els.logRawText.checked) {
+            const pre = document.createElement("pre");
+            pre.textContent = preview(entry.raw);
+            line.appendChild(pre);
+          }
+
+          els.log.appendChild(line);
+          if (els.autoScrollLogs.checked) {
+            els.log.scrollTop = els.log.scrollHeight;
+          }
+        }
+
+        function clearLogs() {
+          state.logs.length = 0;
+          els.log.textContent = "";
+        }
+
+        function exportLogs() {
+          const jsonl = state.logs.map((entry) => JSON.stringify(entry)).join("\n");
+          const blob = new Blob([jsonl], { type: "application/x-ndjson" });
+          downloadBlob(blob, `heydi-ws-log-${Date.now()}.jsonl`);
+        }
+
+        function downloadBlob(blob, filename) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function setBadge(el, text, mode) {
+          el.textContent = text;
+          el.classList.toggle("on", mode === "on");
+          el.classList.toggle("error", mode === "error");
+        }
+
+        function updateUi() {
+          const wsOpen = state.ws && state.ws.readyState === WebSocket.OPEN;
+          const wsConnecting = state.ws && state.ws.readyState === WebSocket.CONNECTING;
+
+          setBadge(els.loginBadge, state.loggedIn ? "LOGIN ON" : "LOGIN OFF", state.loggedIn ? "on" : "off");
+          setBadge(els.sessionBadge, state.sessionActive ? "SESSION ON" : "SESSION OFF", state.sessionActive ? "on" : "off");
+          setBadge(
+            els.wsBadge,
+            wsOpen ? "WS OPEN" : wsConnecting ? "WS CONNECTING" : "WS CLOSED",
+            wsOpen ? "on" : wsConnecting ? "off" : "off",
+          );
+          setBadge(els.micBadge, state.recording ? "MIC ON" : "MIC OFF", state.recording ? "on" : "off");
+
+          buttons.connect.disabled = Boolean(state.ws);
+          buttons.disconnect.disabled = !state.ws;
+          buttons.interrupt.disabled = !wsOpen;
+          buttons.turnComplete.disabled = !wsOpen;
+          buttons.sendCustom.disabled = !wsOpen;
+          buttons.startMic.disabled = !wsOpen || state.recording;
+          buttons.stopMic.disabled = !state.recording;
+          buttons.downloadAudio.disabled = state.receivedAudio.length === 0;
+
+          els.wsSentCount.textContent = String(state.counters.wsSent);
+          els.wsRecvCount.textContent = String(state.counters.wsReceived);
+          els.micBytes.textContent = formatBytes(state.counters.micBytes);
+          els.aiBytes.textContent = formatBytes(state.counters.aiBytes);
+
+          updateResolvedWsUrl();
+        }
+
+        function getApiBase() {
+          return els.apiBase.value.trim().replace(/\/+$/, "");
+        }
+
+        function buildUrl(path) {
+          return `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
+        }
+
+        function buildWsUrl() {
+          const base = new URL(getApiBase());
+          const protocol = base.protocol === "https:" ? "wss:" : "ws:";
+          const wsPath = els.wsPath.value.trim() || "/ws/conversations";
+          const path = wsPath.startsWith("/") ? wsPath : `/${wsPath}`;
+          const diaryId = els.diaryId.value.trim();
+          const url = new URL(`${protocol}//${base.host}${path}`);
+          if (diaryId) {
+            url.searchParams.set("diaryId", diaryId);
+          }
+          return url.toString();
+        }
+
+        function updateResolvedWsUrl() {
+          try {
+            els.resolvedWsUrl.value = buildWsUrl();
+          } catch (error) {
+            els.resolvedWsUrl.value = "Invalid backend base URL";
+          }
+        }
+
+        async function apiFetch(path, options = {}) {
+          const method = options.method || "GET";
+          const url = buildUrl(path);
+          const bodyText = options.body == null ? "" : JSON.stringify(options.body);
+          const logBody = redactRequestBody(path, options.body);
+
+          logEvent("OUT", `HTTP ${method} ${path}`, bodyText ? `body ${bodyText.length} chars` : "", logBody);
+
+          let response;
+          let text;
+          try {
+            response = await fetch(url, {
+              method,
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+              },
+              body: bodyText || undefined,
+            });
+            text = await response.text();
+          } catch (error) {
+            logEvent("ERR", `HTTP ${method} failed`, error.message || String(error));
+            throw error;
+          }
+
+          let data = null;
+          try {
+            data = text ? JSON.parse(text) : null;
+          } catch {
+            data = text;
+          }
+
+          logEvent(
+            response.ok ? "IN" : "ERR",
+            `HTTP ${response.status} ${method} ${path}`,
+            typeof data === "string" ? `${data.length} chars` : "json",
+            data,
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          return data;
+        }
+
+        function redactRequestBody(path, body) {
+          if (body == null) {
+            return null;
+          }
+
+          if (path === "/auth/login") {
+            return {
+              ...body,
+              password: body.password ? "***" : body.password,
+            };
+          }
+
+          return body;
+        }
+
+        async function login() {
+          const data = await apiFetch("/auth/login", {
+            method: "POST",
+            body: {
+              username: els.username.value,
+              password: els.password.value,
+              fcmToken: els.fcmToken.value || "ws-test-token",
+            },
+          });
+          state.loggedIn = Boolean(data && data.success);
+          updateUi();
+        }
+
+        async function logout() {
+          try {
+            await apiFetch("/auth/logout", { method: "POST", body: {} });
+          } finally {
+            state.loggedIn = false;
+            state.sessionActive = false;
+            disconnectWs();
+            updateUi();
+          }
+        }
+
+        async function startSession() {
+          const body = {};
+          if (els.targetDate.value) {
+            body.targetDate = els.targetDate.value;
+          }
+          const data = await apiFetch("/api/conversations/sessions", {
+            method: "POST",
+            body,
+          });
+          const diaryId = data && data.result && data.result.diaryId;
+          if (diaryId != null) {
+            els.diaryId.value = String(diaryId);
+            state.sessionActive = true;
+          }
+          updateUi();
+        }
+
+        async function fetchMessages() {
+          const diaryId = requireDiaryId();
+          await apiFetch(`/api/conversations/sessions/${encodeURIComponent(diaryId)}/messages?page=0&size=50`);
+        }
+
+        async function endSession() {
+          const diaryId = requireDiaryId();
+          await apiFetch(`/api/conversations/sessions/${encodeURIComponent(diaryId)}/end`, {
+            method: "POST",
+            body: {
+              generateDiary: els.generateDiary.checked,
+            },
+          });
+          state.sessionActive = false;
+          updateUi();
+        }
+
+        function requireDiaryId() {
+          const diaryId = els.diaryId.value.trim();
+          if (!diaryId) {
+            throw new Error("Diary ID is required.");
+          }
+          return diaryId;
+        }
+
+        async function connectWs() {
+          requireDiaryId();
+          await ensurePlaybackContext();
+          const wsUrl = buildWsUrl();
+          const ws = new WebSocket(wsUrl);
+          ws.binaryType = "arraybuffer";
+          state.ws = ws;
+          updateUi();
+
+          logEvent("OUT", "WS CONNECT", wsUrl);
+
+          ws.onopen = async () => {
+            logEvent("IN", "WS OPEN", wsUrl);
+            await ensurePlaybackContext();
+            updateUi();
+          };
+
+          ws.onmessage = (event) => {
+            state.counters.wsReceived += 1;
+            if (typeof event.data === "string") {
+              handleIncomingText(event.data);
+            } else {
+              handleIncomingBinary(event.data);
+            }
+            updateUi();
+          };
+
+          ws.onerror = () => {
+            logEvent("ERR", "WS ERROR", "Browser websocket error event");
+          };
+
+          ws.onclose = (event) => {
+            logEvent("IN", "WS CLOSE", `code=${event.code}, reason=${event.reason || "(empty)"}`);
+            stopMic();
+            state.ws = null;
+            updateUi();
+          };
+        }
+
+        function disconnectWs() {
+          if (state.ws) {
+            logEvent("OUT", "WS CLOSE REQUEST");
+            state.ws.close();
+          }
+        }
+
+        function sendTextMessage(payload) {
+          if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+            throw new Error("WebSocket is not open.");
+          }
+          const text = typeof payload === "string" ? payload : JSON.stringify(payload);
+          state.ws.send(text);
+          state.counters.wsSent += 1;
+          logEvent("OUT", "WS TEXT", `${text.length} chars`, parseMaybeJson(text));
+          updateUi();
+        }
+
+        function sendBinaryMessage(arrayBuffer, meta) {
+          if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+            return false;
+          }
+          state.ws.send(arrayBuffer);
+          state.counters.wsSent += 1;
+          state.counters.micBytes += arrayBuffer.byteLength;
+          if (els.logAudioChunks.checked) {
+            logEvent(
+              "OUT",
+              "WS BINARY audio",
+              `chunk=${state.counters.micChunks}, bytes=${arrayBuffer.byteLength}, sampleRate=${meta.sampleRate}, rms=${meta.rms.toFixed(4)}, peak=${meta.peak.toFixed(4)}`,
+            );
+          }
+          updateUi();
+          return true;
+        }
+
+        function handleIncomingText(text) {
+          const data = parseMaybeJson(text);
+          logEvent("IN", "WS TEXT", `${text.length} chars`, data);
+
+          if (!data || typeof data !== "object") {
+            return;
+          }
+
+          const type = String(data.type || "").toUpperCase();
+          const payload = data.data;
+
+          if (type === "INPUT_TRANSCRIPT" || type === "INPUT") {
+            setTranscript(els.inputTranscript, extractTranscript(data, payload));
+            return;
+          }
+
+          if (type === "OUTPUT_TRANSCRIPT" || type === "OUTPUT") {
+            setTranscript(els.outputTranscript, extractTranscript(data, payload));
+            return;
+          }
+
+          if (type === "AUDIO_CHUNK") {
+            const bytes = base64ToUint8Array(String(payload || ""));
+            receiveAudioBytes(bytes.buffer, "base64 envelope");
+            return;
+          }
+
+          if (type === "INTERRUPT") {
+            clearPlayback();
+            return;
+          }
+
+          if (type === "TURN_COMPLETE") {
+            logEvent("IN", "TURN COMPLETE", JSON.stringify(payload));
+            return;
+          }
+
+          if (type === "ERROR") {
+            logEvent("ERR", "WS ERROR ENVELOPE", "", data);
+          }
+        }
+
+        function handleIncomingBinary(data) {
+          const ab = data instanceof ArrayBuffer ? data : data.buffer;
+          logEvent("IN", "WS BINARY audio", `${ab.byteLength} bytes`);
+          receiveAudioBytes(ab, "binary");
+        }
+
+        function parseMaybeJson(text) {
+          try {
+            return JSON.parse(text);
+          } catch {
+            return text;
+          }
+        }
+
+        function extractTranscript(root, payload) {
+          if (typeof payload === "string") return payload;
+          if (root && typeof root.transcription === "string") return root.transcription;
+          return JSON.stringify(payload ?? "");
+        }
+
+        function setTranscript(el, text) {
+          const current = el.classList.contains("muted") ? "" : el.textContent;
+          const next = text == null ? "" : String(text).trim();
+          if (!next) return;
+          el.classList.remove("muted");
+          el.textContent = current ? `${current}\n${next}` : next;
+        }
+
+        function base64ToUint8Array(base64) {
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i += 1) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          return bytes;
+        }
+
+        async function ensurePlaybackContext() {
+          const sampleRate = Number(els.recvSampleRate.value) || 24000;
+          if (!state.playCtx || state.playCtx.state === "closed") {
+            state.playCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+            state.playTime = state.playCtx.currentTime;
+            logEvent("SYS", "Playback context", `actualSampleRate=${state.playCtx.sampleRate}, expectedSampleRate=${sampleRate}`);
+          }
+          if (state.playCtx.state === "suspended") {
+            await state.playCtx.resume();
+          }
+        }
+
+        function receiveAudioBytes(arrayBuffer, source) {
+          const bytes = new Uint8Array(arrayBuffer);
+          state.counters.aiChunks += 1;
+          state.counters.aiBytes += bytes.byteLength;
+          state.receivedAudio.push(new Uint8Array(bytes));
+
+          if (els.logAudioChunks.checked) {
+            logEvent("IN", "AI audio chunk", `chunk=${state.counters.aiChunks}, source=${source}, bytes=${bytes.byteLength}`);
+          }
+
+          playPcmInt16Mono(bytes.buffer).catch((error) => {
+            logEvent("ERR", "Playback failed", error.message || String(error));
+          });
+        }
+
+        async function playPcmInt16Mono(arrayBuffer) {
+          await ensurePlaybackContext();
+          if (!state.playCtx || arrayBuffer.byteLength < 2) {
+            return;
+          }
+
+          const evenLength = arrayBuffer.byteLength - (arrayBuffer.byteLength % 2);
+          const pcmBuffer = evenLength === arrayBuffer.byteLength ? arrayBuffer : arrayBuffer.slice(0, evenLength);
+          const int16 = new Int16Array(pcmBuffer);
+          const float32 = new Float32Array(int16.length);
+
+          for (let i = 0; i < int16.length; i += 1) {
+            float32[i] = Math.max(-1, Math.min(1, int16[i] / 32768));
+          }
+
+          const sampleRate = Number(els.recvSampleRate.value) || 24000;
+          const buffer = state.playCtx.createBuffer(1, float32.length, sampleRate);
+          buffer.copyToChannel(float32, 0);
+
+          const source = state.playCtx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(state.playCtx.destination);
+          source.onended = () => state.scheduledSources.delete(source);
+          state.scheduledSources.add(source);
+
+          const now = state.playCtx.currentTime;
+          if (state.playTime < now + 0.04) {
+            state.playTime = now + 0.04;
+          }
+
+          source.start(state.playTime);
+          state.playTime += buffer.duration;
+        }
+
+        function clearPlayback() {
+          for (const source of state.scheduledSources) {
+            try {
+              source.stop();
+            } catch {
+              // Already stopped.
+            }
+          }
+          state.scheduledSources.clear();
+          if (state.playCtx) {
+            state.playTime = state.playCtx.currentTime;
+          }
+          logEvent("SYS", "Playback cleared");
+        }
+
+        async function startMic() {
+          if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+            throw new Error("WebSocket is not open.");
+          }
+
+          const targetSampleRate = Number(els.sendSampleRate.value) || 16000;
+          const chunkMs = 20;
+          const chunkSamples = Math.round((targetSampleRate * chunkMs) / 1000);
+
+          state.micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              channelCount: 1,
+              echoCancellation: els.echoCancellation.checked,
+              noiseSuppression: els.noiseSuppression.checked,
+              autoGainControl: els.autoGainControl.checked,
+            },
+          });
+
+          state.micCtx = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: targetSampleRate,
+          });
+
+          if (state.micCtx.state === "suspended") {
+            await state.micCtx.resume();
+          }
+
+          const blobUrl = URL.createObjectURL(
+            new Blob([buildWorkletSource()], { type: "application/javascript" }),
+          );
+          await state.micCtx.audioWorklet.addModule(blobUrl);
+          URL.revokeObjectURL(blobUrl);
+
+          const source = state.micCtx.createMediaStreamSource(state.micStream);
+          state.workletNode = new AudioWorkletNode(state.micCtx, "pcm-int16-sender", {
+            processorOptions: {
+              targetSampleRate,
+              chunkSamples,
+            },
+          });
+
+          state.workletNode.port.onmessage = (event) => {
+            const msg = event.data;
+            if (!msg || msg.type !== "chunk") {
+              return;
+            }
+            state.counters.micChunks += 1;
+            els.inputMeter.style.width = `${Math.min(100, Math.round(msg.peak * 100))}%`;
+            sendBinaryMessage(msg.buffer, {
+              sampleRate: targetSampleRate,
+              rms: msg.rms || 0,
+              peak: msg.peak || 0,
+            });
+          };
+
+          source.connect(state.workletNode);
+          state.recording = true;
+          logEvent(
+            "SYS",
+            "Mic started",
+            `actualSampleRate=${state.micCtx.sampleRate}, targetSampleRate=${targetSampleRate}, chunkSamples=${chunkSamples}`,
+          );
+          updateUi();
+        }
+
+        function stopMic() {
+          if (state.workletNode) {
+            try {
+              state.workletNode.disconnect();
+            } catch {
+              // Ignore disconnect failures.
+            }
+            state.workletNode = null;
+          }
+
+          if (state.micCtx) {
+            state.micCtx.close().catch(() => {});
+            state.micCtx = null;
+          }
+
+          if (state.micStream) {
+            for (const track of state.micStream.getTracks()) {
+              track.stop();
+            }
+            state.micStream = null;
+          }
+
+          if (state.recording) {
+            logEvent("SYS", "Mic stopped");
+          }
+          state.recording = false;
+          els.inputMeter.style.width = "0";
+          updateUi();
+        }
+
+        function buildWorkletSource() {
+          return `
+class PcmInt16Sender extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    const processorOptions = options.processorOptions || {};
+    this.targetSampleRate = processorOptions.targetSampleRate || 16000;
+    this.chunkSamples = processorOptions.chunkSamples || 320;
+    this.chunk = new Int16Array(this.chunkSamples);
+    this.offset = 0;
+  }
+
+  process(inputs) {
+    const input = inputs[0];
+    if (!input || !input[0]) return true;
+    const channel = input[0];
+    let sumSquares = 0;
+    let peak = 0;
+
+    for (let i = 0; i < channel.length; i += 1) {
+      let sample = channel[i];
+      if (sample > 1) sample = 1;
+      if (sample < -1) sample = -1;
+      const abs = Math.abs(sample);
+      if (abs > peak) peak = abs;
+      sumSquares += sample * sample;
+      this.chunk[this.offset] = sample < 0 ? sample * 32768 : sample * 32767;
+      this.offset += 1;
+
+      if (this.offset >= this.chunk.length) {
+        const out = this.chunk;
+        const rms = Math.sqrt(sumSquares / Math.max(1, channel.length));
+        this.port.postMessage(
+          { type: "chunk", buffer: out.buffer, rms, peak },
+          [out.buffer],
+        );
+        this.chunk = new Int16Array(this.chunkSamples);
+        this.offset = 0;
+      }
+    }
+    return true;
+  }
+}
+
+registerProcessor("pcm-int16-sender", PcmInt16Sender);
+`;
+        }
+
+        function sendInterrupt() {
+          sendTextMessage({ type: "INTERRUPT", data: true });
+          clearPlayback();
+        }
+
+        function sendTurnComplete() {
+          sendTextMessage({ type: "TURN_COMPLETE", data: true });
+        }
+
+        function sendCustom() {
+          const text = els.customMessage.value.trim();
+          if (!text) return;
+          JSON.parse(text);
+          sendTextMessage(text);
+        }
+
+        function saveReceivedWav() {
+          if (state.receivedAudio.length === 0) {
+            return;
+          }
+
+          const sampleRate = Number(els.recvSampleRate.value) || 24000;
+          const totalBytes = state.receivedAudio.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+          const pcm = new Uint8Array(totalBytes);
+          let offset = 0;
+          for (const chunk of state.receivedAudio) {
+            pcm.set(chunk, offset);
+            offset += chunk.byteLength;
+          }
+
+          const wav = encodeWavPcm16(pcm, sampleRate);
+          downloadBlob(wav, `heydi-ai-audio-${Date.now()}.wav`);
+          logEvent("SYS", "Received audio WAV saved", `sampleRate=${sampleRate}, bytes=${totalBytes}`);
+        }
+
+        function encodeWavPcm16(pcmBytes, sampleRate) {
+          const dataSize = pcmBytes.byteLength;
+          const buffer = new ArrayBuffer(44 + dataSize);
+          const view = new DataView(buffer);
+
+          writeAscii(view, 0, "RIFF");
+          view.setUint32(4, 36 + dataSize, true);
+          writeAscii(view, 8, "WAVE");
+          writeAscii(view, 12, "fmt ");
+          view.setUint32(16, 16, true);
+          view.setUint16(20, 1, true);
+          view.setUint16(22, 1, true);
+          view.setUint32(24, sampleRate, true);
+          view.setUint32(28, sampleRate * 2, true);
+          view.setUint16(32, 2, true);
+          view.setUint16(34, 16, true);
+          writeAscii(view, 36, "data");
+          view.setUint32(40, dataSize, true);
+          new Uint8Array(buffer, 44).set(pcmBytes);
+
+          return new Blob([buffer], { type: "audio/wav" });
+        }
+
+        function writeAscii(view, offset, text) {
+          for (let i = 0; i < text.length; i += 1) {
+            view.setUint8(offset + i, text.charCodeAt(i));
+          }
+        }
+
+        function bind(id, handler) {
+          buttons[id].addEventListener("click", () => {
+            Promise.resolve()
+              .then(handler)
+              .catch((error) => {
+                logEvent("ERR", "Action failed", error.message || String(error));
+                updateUi();
+              });
+          });
+        }
+
+        bind("login", login);
+        bind("logout", logout);
+        bind("startSession", startSession);
+        bind("fetchMessages", fetchMessages);
+        bind("endSession", endSession);
+        bind("connect", connectWs);
+        bind("disconnect", disconnectWs);
+        bind("interrupt", sendInterrupt);
+        bind("turnComplete", sendTurnComplete);
+        bind("sendCustom", sendCustom);
+        bind("startMic", startMic);
+        bind("stopMic", stopMic);
+        bind("clearPlayback", clearPlayback);
+        bind("downloadAudio", saveReceivedWav);
+        bind("clearLogs", clearLogs);
+        bind("exportLogs", exportLogs);
+
+        for (const el of [els.apiBase, els.wsPath, els.diaryId]) {
+          el.addEventListener("input", updateResolvedWsUrl);
+        }
+
+        window.addEventListener("beforeunload", () => {
+          stopMic();
+          if (state.ws) {
+            state.ws.close();
+          }
+        });
+
+        updateResolvedWsUrl();
+        updateUi();
+        logEvent("SYS", "Test client loaded", "Use HTTP origin for microphone access.");
+      })();
+    </script>
+  </body>
+</html>
