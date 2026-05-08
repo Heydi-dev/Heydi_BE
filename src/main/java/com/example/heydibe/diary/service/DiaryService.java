@@ -51,7 +51,7 @@ public class DiaryService {
             throw new CustomException(ErrorCode.INVALID_PAGE_REQUEST);
         }
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<DiariesResponse.DiaryResponse> page = diaryRepository.findAllByUser(user, pageable).map(DiariesResponse.DiaryResponse::from);
+        Page<DiariesResponse.DiaryResponse> page = diaryRepository.findAllByUserAndDeletedAtIsNull(user, pageable).map(DiariesResponse.DiaryResponse::from);
         response.setContent(page.getContent());
         response.setTotalElements((int) page.getTotalElements());
         response.setTotalPages(page.getTotalPages());

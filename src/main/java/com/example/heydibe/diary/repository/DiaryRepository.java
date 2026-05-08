@@ -11,7 +11,7 @@ import com.example.heydibe.diary.entity.Diary;
 import com.example.heydibe.user.entity.User;
 
 public interface DiaryRepository extends JpaRepository<Diary, Long> {
-    Page<Diary> findAllByUser(User user, Pageable pageable);
+    Page<Diary> findAllByUserAndDeletedAtIsNull(User user, Pageable pageable);
 
     Optional<Diary> findById(Long id);
 
