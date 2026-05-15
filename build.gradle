@@ -58,3 +58,7 @@ implementation platform('software.amazon.awssdk:bom:2.20.26')
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+bootJar {
+	archiveFileName = 'app.jar'
+}
