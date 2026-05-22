@@ -8,7 +8,10 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "post_attachment")
+@Table(
+        name = "post_attachment",
+        indexes = @Index(name = "idx_post_attachment_post_id", columnList = "post_id")
+)
 public class PostAttachment {
 
     @Id

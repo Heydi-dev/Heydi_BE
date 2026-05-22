@@ -11,7 +11,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "post")
+@Table(
+        name = "post",
+        indexes = {
+                @Index(name = "idx_post_feed", columnList = "status, deleted_at, created_at"),
+                @Index(name = "idx_post_diary_id", columnList = "diary_id")
+        }
+)
 public class Post {
 
     @Id

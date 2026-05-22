@@ -15,11 +15,9 @@ import com.example.heydibe.community.post.entity.PostLike;
 import com.example.heydibe.community.post.repository.PostAttachmentRepository;
 import com.example.heydibe.community.post.repository.PostLikeRepository;
 import com.example.heydibe.community.post.repository.PostRepository;
+import com.example.heydibe.community.post.repository.projection.PostDetailProjection;
+import com.example.heydibe.community.post.repository.projection.PostFeedProjection;
 import com.example.heydibe.infrastructure.s3.S3Service;
-import com.example.heydibe.user.entity.User;
-import com.example.heydibe.user.entity.UserProfile;
-import com.example.heydibe.user.repository.UserProfileRepository;
-import com.example.heydibe.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,8 +43,6 @@ public class PostService {
     private final PostRepository postRepository;
     private final PostAttachmentRepository postAttachmentRepository;
     private final PostLikeRepository postLikeRepository;
-    private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
     private final S3Service s3Service;
 
     @Transactional
@@ -153,32 +150,30 @@ public class PostService {
 
     @Transactional
     public PostFeedResponse getPostFeed(Long userId) {
-        List<Post> posts = postRepository.findByStatusAndDeletedAtIsNullOrderByCreatedAtDesc(STATUS_PUBLISHED);
-        List<PostFeedResponse.PostSummary> summaries = new ArrayList<>();
+        List<PostFeedProjection> rows = postRepository.findPublishedFeed(STATUS_PUBLISHED);
+        if (rows.isEmpty()) {
+            PostFeedResponse.Result empty = new PostFeedResponse.Result(Collections.emptyList(), null, false);
+            return new PostFeedResponse(empty);
+        }
 
-        for (Post post : posts) {
-            User author = userRepository.findByIdAndDeletedAtIsNull(post.getUserId())
-                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-            String profileUrl = userProfileRepository.findByUserId(author.getId())
-                    .map(UserProfile::getProfileImageUrl)
-                    .orElse(null);
+        List<Long> postIds = rows.stream().map(PostFeedProjection::getPostId).toList();
+        Set<Long> likedPostIds = postLikeRepository.findPostIdByUserIdAndPostIdIn(userId, postIds);
 
-            boolean isLiked = postLikeRepository.existsByPostIdAndUserId(post.getId(), userId);
-            List<String> topics = splitTopics(post.getTopic());
-
+        List<PostFeedResponse.PostSummary> summaries = new ArrayList<>(rows.size());
+        for (PostFeedProjection row : rows) {
             summaries.add(new PostFeedResponse.PostSummary(
-                    post.getId(),
-                    author.getId(),
-                    author.getNickname(),
-                    profileUrl,
-                    post.getTitle(),
-                    topics,
-                    post.getEmotion(),
-                    post.getContent(),
-                    post.getLikeCount(),
-                    post.getCommentCount(),
-                    isLiked,
-                    post.getCreatedAt()
+                    row.getPostId(),
+                    row.getUserId(),
+                    row.getNickname(),
+                    row.getProfileUrl(),
+                    row.getPostTitle(),
+                    splitTopics(row.getTopic()),
+                    row.getPostEmotion(),
+                    row.getPostContent(),
+                    row.getLikeCount(),
+                    row.getCommentCount(),
+                    likedPostIds.contains(row.getPostId()),
+                    row.getCreatedAt()
             ));
         }
 
@@ -217,14 +212,8 @@ public class PostService {
 
     @Transactional
     public PostDetailResponse getPostDetail(Long userId, Long postId) {
-        Post post = postRepository.findByIdAndStatusAndDeletedAtIsNull(postId, STATUS_PUBLISHED)
+        PostDetailProjection row = postRepository.findPublishedDetail(postId, STATUS_PUBLISHED)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
-
-        User author = userRepository.findByIdAndDeletedAtIsNull(post.getUserId())
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        String profileUrl = userProfileRepository.findByUserId(author.getId())
-                .map(UserProfile::getProfileImageUrl)
-                .orElse(null);
 
         List<PostAttachment> attachments = postAttachmentRepository.findByPostIdOrderByIdAsc(postId);
         List<PostDetailResponse.Photo> photos = new ArrayList<>();
@@ -240,19 +229,19 @@ public class PostService {
         boolean isLiked = postLikeRepository.existsByPostIdAndUserId(postId, userId);
 
         return new PostDetailResponse(
-                post.getId(),
-                new PostDetailResponse.Author(author.getId(), author.getNickname(), profileUrl),
-                post.getDiaryId(),
-                post.getDiaryDate(),
-                post.getTitle(),
-                splitTopics(post.getTopic()),
-                post.getEmotion(),
-                post.getContent(),
+                row.getPostId(),
+                new PostDetailResponse.Author(row.getUserId(), row.getNickname(), row.getProfileUrl()),
+                row.getDiaryId(),
+                row.getDiaryDate(),
+                row.getPostTitle(),
+                splitTopics(row.getTopic()),
+                row.getPostEmotion(),
+                row.getPostContent(),
                 photos,
-                post.getLikeCount(),
-                post.getCommentCount(),
+                row.getLikeCount(),
+                row.getCommentCount(),
                 isLiked,
-                post.getCreatedAt()
+                row.getCreatedAt()
         );
     }
 
