@@ -11,6 +11,7 @@ import com.example.heydibe.diary.entity.Diary;
 import com.example.heydibe.diary.entity.DiaryConversation;
 import com.example.heydibe.diary.repository.DiaryConversationRepository;
 import com.example.heydibe.diary.repository.DiaryRepository;
+import com.example.heydibe.report.service.MonthlyReportUpdateService;
 import com.example.heydibe.user.entity.User;
 import com.example.heydibe.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,6 +54,9 @@ class ConversationSessionServiceTest {
 
     @Mock
     private AiService aiService;
+
+    @Mock
+    private MonthlyReportUpdateService monthlyReportUpdateService;
 
     @InjectMocks
     private ConversationSessionService conversationSessionService;
@@ -200,6 +204,7 @@ class ConversationSessionServiceTest {
         verify(aiService).generateOneLineDiary(diaryContent);
         verify(aiService).generateEmotion(diaryContent);
         verify(aiService).generateTopics(diaryContent);
+        verify(monthlyReportUpdateService).updateReportForDiary(diary);
     }
 
     // ==================== 실패 케이스 ====================

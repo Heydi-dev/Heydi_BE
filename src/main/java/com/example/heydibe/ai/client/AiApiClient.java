@@ -31,6 +31,15 @@ public class AiApiClient {
     @Value("${app.ai-server.endpoints.generate-summary:/api/v1/model/summary}")
     private String generateSummaryPath;
 
+    @Value("${app.ai-server.endpoints.generate-preferences:/api/v1/model/preferences}")
+    private String generatePreferencesPath;
+
+    @Value("${app.ai-server.endpoints.generate-monthly-activity:/api/v1/model/monthly-activity}")
+    private String generateMonthlyActivityPath;
+
+    @Value("${app.ai-server.endpoints.generate-monthly-feedback:/api/v1/model/monthly-feedback}")
+    private String generateMonthlyFeedbackPath;
+
     public TestResponse test() {
         return aiRestClient.get()
                 .uri("/api/v1/test-model/test")
@@ -123,6 +132,65 @@ public class AiApiClient {
                 throw new CustomException(ErrorCode.SERVER_ERROR);
             }
             return summary;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.SERVER_ERROR);
+        }
+    }
+
+    public JsonNode generateMonthlyPreferences(List<Map<String, String>> entries) {
+        try {
+            JsonNode node = aiRestClient.post()
+                    .uri(generatePreferencesPath)
+                    .body(Map.of("entries", entries))
+                    .retrieve()
+                    .body(JsonNode.class);
+
+            if (node == null || node.isNull()) {
+                throw new CustomException(ErrorCode.SERVER_ERROR);
+            }
+            return node;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.SERVER_ERROR);
+        }
+    }
+
+    public String generateMonthlyActivityComment(List<Map<String, String>> entries) {
+        try {
+            JsonNode node = aiRestClient.post()
+                    .uri(generateMonthlyActivityPath)
+                    .body(Map.of("entries", entries))
+                    .retrieve()
+                    .body(JsonNode.class);
+
+            String comment = readString(node, "activity_comment");
+            if (comment == null) {
+                throw new CustomException(ErrorCode.SERVER_ERROR);
+            }
+            return comment;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.SERVER_ERROR);
+        }
+    }
+
+    public String generateMonthlyFeedbackComment(List<Map<String, String>> entries) {
+        try {
+            JsonNode node = aiRestClient.post()
+                    .uri(generateMonthlyFeedbackPath)
+                    .body(Map.of("entries", entries))
+                    .retrieve()
+                    .body(JsonNode.class);
+
+            String comment = readString(node, "feedback_comment");
+            if (comment == null) {
+                throw new CustomException(ErrorCode.SERVER_ERROR);
+            }
+            return comment;
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {

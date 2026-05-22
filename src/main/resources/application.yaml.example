@@ -76,6 +76,9 @@ aws:
       expire-seconds: 3600
 
 app:
+  report:
+    monthly:
+      include-only-marked: false
   profile-image-base-url: https://heydi-dev-storage.s3.ap-southeast-2.amazonaws.com
   default-profile-image-key: profiles/default.png
   post-image-base-url: https://heydi-dev-storage.s3.ap-southeast-2.amazonaws.com
@@ -92,4 +95,7 @@ app:
       generate-emotion: /api/v1/model/emotion
       generate-diary: /api/v1/model/diary
       generate-summary: /api/v1/model/summary
+      generate-preferences: /api/v1/model/preferences
+      generate-monthly-activity: /api/v1/model/monthly-activity
+      generate-monthly-feedback: /api/v1/model/monthly-feedback
 

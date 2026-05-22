@@ -13,6 +13,7 @@ import com.example.heydibe.diary.entity.Diary;
 import com.example.heydibe.diary.entity.DiaryConversation;
 import com.example.heydibe.diary.repository.DiaryConversationRepository;
 import com.example.heydibe.diary.repository.DiaryRepository;
+import com.example.heydibe.report.service.MonthlyReportUpdateService;
 import com.example.heydibe.user.entity.User;
 import com.example.heydibe.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -51,6 +52,7 @@ public class ConversationSessionService {
     private final DiaryConversationRepository diaryConversationRepository;
     private final UserRepository userRepository;
     private final AiService aiService;
+    private final MonthlyReportUpdateService monthlyReportUpdateService;
 
     @Transactional
     public ConversationSessionStartResponse startSession(Long userId, ConversationSessionStartRequest request) {
@@ -127,6 +129,7 @@ public class ConversationSessionService {
         }
         diary.setUpdatedAt(endedAt);
         Diary saved = diaryRepository.save(diary);
+        monthlyReportUpdateService.updateReportForDiary(saved);
 
         return new ConversationSessionEndResponse(
                 STATUS_ENDED,

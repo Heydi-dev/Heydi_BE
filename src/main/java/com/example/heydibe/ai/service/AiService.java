@@ -2,6 +2,7 @@ package com.example.heydibe.ai.service;
 
 import com.example.heydibe.ai.client.AiApiClient;
 import com.example.heydibe.ai.dto.response.TestResponse;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,5 +33,17 @@ public class AiService {
 
     public String generateDiaryContent(List<Map<String, String>> turns) {
         return aiApiClient.generateDiaryContent(turns);
+    }
+
+    public JsonNode generateMonthlyPreferences(List<Map<String, String>> entries) {
+        return aiApiClient.generateMonthlyPreferences(entries);
+    }
+
+    public String generateMonthlyActivityComment(List<Map<String, String>> entries) {
+        return aiApiClient.generateMonthlyActivityComment(entries);
+    }
+
+    public String generateMonthlyFeedbackComment(List<Map<String, String>> entries) {
+        return aiApiClient.generateMonthlyFeedbackComment(entries);
     }
 }

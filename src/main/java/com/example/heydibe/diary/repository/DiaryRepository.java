@@ -1,5 +1,6 @@
 package com.example.heydibe.diary.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,4 +19,10 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     Optional<Diary> findByIdAndDeletedAtIsNull(Long id);
 
     List<Diary> findByUser_IdAndDeletedAtIsNull(Long userId);
+
+    List<Diary> findByUser_IdAndDeletedAtIsNullAndDiaryDateBetweenOrderByDiaryDateAsc(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 }
