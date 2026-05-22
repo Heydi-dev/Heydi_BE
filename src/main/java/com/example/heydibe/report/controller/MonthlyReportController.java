@@ -2,6 +2,8 @@ package com.example.heydibe.report.controller;
 
 import com.example.heydibe.common.auth.AuthUser;
 import com.example.heydibe.common.response.ApiResponse;
+import com.example.heydibe.report.dto.request.MonthlyReportEntryRequest;
+import com.example.heydibe.report.service.MonthlyReportEntryService;
 import com.example.heydibe.report.service.MonthlyReportQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 public class MonthlyReportController {
 
     private final MonthlyReportQueryService service;
+    private final MonthlyReportEntryService entryService;
 
     @GetMapping
     public ApiResponse getAvailableMonths(@AuthUser Long userId) {
@@ -62,6 +65,22 @@ public class MonthlyReportController {
         return ApiResponse.success(
                 "월간 감정 변화 리포트 조회에 성공했습니다.",
                 service.getEmotions(userId, yearMonth)
+        );
+    }
+
+    @PostMapping("/{yearMonth}/entries")
+    public ApiResponse sendDiaryToMonthlyReport(
+            @AuthUser Long userId,
+            @PathVariable String yearMonth,
+            @RequestBody MonthlyReportEntryRequest request
+    ) {
+        return ApiResponse.success(
+                "리포트로 전송 완료",
+                entryService.includeDiaryInMonthlyReport(
+                        userId,
+                        yearMonth,
+                        request.getDiaryId()
+                )
         );
     }
 }

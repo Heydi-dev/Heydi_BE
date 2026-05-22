@@ -4,8 +4,10 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class FcmService {
 
@@ -20,6 +22,11 @@ public class FcmService {
                 .setNotification(notification)
                 .build();
 
-        return FirebaseMessaging.getInstance().send(message);
+        String response = FirebaseMessaging.getInstance().send(message);
+
+        // 보고서/캡처용 로그
+        log.info("Successfully sent message: {}", response);
+
+        return response;
     }
 }

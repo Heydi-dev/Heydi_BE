@@ -121,7 +121,13 @@ Content-Type: application/json
 {
   "fcmToken": "test-fcm-token"
 }
+###
+POST http://127.0.0.1:8080/settings/fcmtoken
+Content-Type: application/json
 
+{
+"fcmToken": "cJRz2hXOJlS2-PPXvZXNuY:APA91bE_0ijxb_pCNVR62ml784DzcSYXfLBh-dtrp32D619e9c2mwRYfiPgKodYvoZnEThYp_o2Sl07ISADFxoKrlONYs00bbcFBlAw8FUBNI_w5NnUHpSE"
+}
 ###
 
 ### =========================================================
