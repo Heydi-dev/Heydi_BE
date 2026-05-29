@@ -42,5 +42,5 @@ out/
 .vscode/
 
 ### Application Configuration ###
-src/main/resources/application.yaml
+src/main/resources/application-local.yaml
 src/main/resources/application.yml
