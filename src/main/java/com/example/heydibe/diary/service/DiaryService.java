@@ -33,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class DiaryService {
+
     private final AiService aiService;
     private final DiaryRepository diaryRepository;
     private final DiaryAttachmentRepository diaryAttachmentRepository;
@@ -50,8 +51,17 @@ public class DiaryService {
         if (pageNumber < 0 || pageSize <= 0) {
             throw new CustomException(ErrorCode.INVALID_PAGE_REQUEST);
         }
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<DiariesResponse.DiaryResponse> page = diaryRepository.findAllByUserAndDeletedAtIsNull(user, pageable).map(DiariesResponse.DiaryResponse::from);
+
+        Pageable pageable = PageRequest.of(
+                pageNumber,
+                pageSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<DiariesResponse.DiaryResponse> page =
+                diaryRepository.findAllByUserAndDeletedAtIsNull(user, pageable)
+                        .map(DiariesResponse.DiaryResponse::from);
+
         response.setContent(page.getContent());
         response.setTotalElements((int) page.getTotalElements());
         response.setTotalPages(page.getTotalPages());
@@ -61,10 +71,12 @@ public class DiaryService {
 
     public DetailedDiaryResponse getDiaryById(Long userId, Long diaryId) {
         DetailedDiaryResponse response = new DetailedDiaryResponse();
+
         Optional<Diary> temp = diaryRepository.findById(diaryId);
         if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
             throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
         }
+
         Diary diary = temp.get();
 
         if (!diary.isPublic() && !diary.getUser().getId().equals(userId)) {
@@ -75,9 +87,11 @@ public class DiaryService {
 
         response.setId(diaryId);
         response.setTitle(diary.getTitle());
-        response.setCreatedDate(diary.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
+        response.setCreatedDate(
+                diary.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"))
+        );
         response.setEmotionCategory(diary.getMainEmotion());
-        
+
         List<String> topics = new ArrayList<>();
         if (diary.getTopic1() != null) {
             topics.add(diary.getTopic1());
@@ -85,22 +99,27 @@ public class DiaryService {
         if (diary.getTopic2() != null) {
             topics.add(diary.getTopic2());
         }
-
         response.setTopic(topics);
+
         response.setOneLineDiary(diary.getSummaryOneLine());
         response.setContent(diary.getContent());
         response.setConversationSessionId("TODO");
         response.setConversationDurationSec(diary.getConversationDurationSeconds());
-        
+
         List<DetailedDiaryResponse.PhotoResponse> photoResponses = new ArrayList<>();
         for (DiaryAttachment attachment : attachments) {
             photoResponses.add(DetailedDiaryResponse.PhotoResponse.from(attachment));
         }
         response.setPhotos(photoResponses);
 
-        DetailedDiaryResponse.ReportResponse reportResponse = new DetailedDiaryResponse.ReportResponse();
-        reportResponse.setIncluded(false); // TODO
-        reportResponse.setMonth(diary.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")));
+        DetailedDiaryResponse.ReportResponse reportResponse =
+                new DetailedDiaryResponse.ReportResponse();
+
+        reportResponse.setIncluded(Boolean.TRUE.equals(diary.getIncludedInMonthlyReport()));
+        reportResponse.setMonth(
+                diary.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+        );
+
         response.setReport(reportResponse);
 
         return response;
@@ -111,6 +130,7 @@ public class DiaryService {
         if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
             throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
         }
+
         Diary diary = temp.get();
 
         if (!diary.getUser().getId().equals(id)) {
@@ -120,24 +140,30 @@ public class DiaryService {
         if (request.getEmotionCategory() != null) {
             diary.setMainEmotion(request.getEmotionCategory());
         }
+
         if (request.getTopic() != null) {
             List<String> topics = request.getTopic();
-            diary.setTopic1(topics.size() > 0 ? topics.get(0) : null); //TODO: DB diary_tag 반영 필요
+            diary.setTopic1(topics.size() > 0 ? topics.get(0) : null);
             diary.setTopic2(topics.size() > 1 ? topics.get(1) : null);
         }
 
         if (request.getOneLineDiary() != null) {
             diary.setSummaryOneLine(request.getOneLineDiary());
         }
+
         if (request.getContent() != null) {
             diary.setContent(request.getContent());
         }
 
         diary.setUpdatedAt(java.time.LocalDateTime.now());
-
         diaryRepository.save(diary);
 
-        return new DiaryPatchResponse(diaryId, diary.getUpdatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
+        return new DiaryPatchResponse(
+                diaryId,
+                diary.getUpdatedAt().format(
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+                )
+        );
     }
 
     public DiaryConversationResponse getDiaryConversation(Long userId, Long diaryId) {
@@ -145,6 +171,7 @@ public class DiaryService {
         if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
             throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
         }
+
         Diary diary = temp.get();
 
         if (!diary.getUser().getId().equals(userId)) {
@@ -152,6 +179,7 @@ public class DiaryService {
         }
 
         List<DiaryConversation> conversations = diaryConversationRepository.findAllByDiaryId(diaryId);
+
         List<DiaryConversationResponse.MessageResponse> messages = conversations.stream()
                 .map(DiaryConversationResponse.MessageResponse::from)
                 .toList();
@@ -164,6 +192,7 @@ public class DiaryService {
         if (temp.isEmpty() || temp.get().getDeletedAt() != null) {
             throw new CustomException(ErrorCode.DIARY_NOT_FOUND);
         }
+
         Diary diary = temp.get();
 
         if (!diary.getUser().getId().equals(userId)) {
