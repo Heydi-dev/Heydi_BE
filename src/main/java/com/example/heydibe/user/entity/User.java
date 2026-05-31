@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 public class User {
 
+    public static final String WITHDRAWN_NICKNAME = "탈퇴한 사용자";
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long id;
@@ -59,5 +61,13 @@ public class User {
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void anonymizeForWithdrawal() {
+        this.username = "withdrawn_" + this.id;
+        this.nickname = WITHDRAWN_NICKNAME;
+        this.passwordHash = null;
+        this.fcmToken = null;
+        softDelete();
     }
 }
