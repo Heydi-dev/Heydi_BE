@@ -1,9 +1,6 @@
 package com.example.heydibe.auth.service;
 
-import com.example.heydibe.common.error.ErrorCode;
-import com.example.heydibe.common.exception.CustomException;
 import com.example.heydibe.user.entity.SocialAccount;
-import com.example.heydibe.user.repository.SocialAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -14,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -24,34 +22,52 @@ public class SocialUnlinkService {
     private static final String PROVIDER_GOOGLE = "google";
     private static final String PROVIDER_KAKAO = "kakao";
 
-    private final SocialAccountRepository socialAccountRepository;
     private final SocialTokenService socialTokenService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    public void unlinkAllByUserId(Long userId) {
-        List<SocialAccount> accounts = socialAccountRepository.findByUserId(userId);
+    /**
+     * DB 삭제 전(트랜잭션 내) 호출해 유효 access token을 확보한다.
+     */
+    public List<SocialUnlinkTarget> prepareUnlinkTargets(List<SocialAccount> accounts) {
+        List<SocialUnlinkTarget> targets = new ArrayList<>();
         for (SocialAccount account : accounts) {
-            unlinkAccount(account);
+            try {
+                String accessToken = socialTokenService.getValidAccessToken(account);
+                if (accessToken != null && !accessToken.isBlank()) {
+                    targets.add(new SocialUnlinkTarget(account.getProvider(), accessToken));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to prepare OAuth unlink for provider={}", account.getProvider(), e);
+            }
+        }
+        return targets;
+    }
+
+    /**
+     * commit 이후 best-effort로 provider 연결 해제. 실패해도 탈퇴는 완료된 상태를 유지한다.
+     */
+    public void unlinkBestEffort(List<SocialUnlinkTarget> targets) {
+        for (SocialUnlinkTarget target : targets) {
+            try {
+                unlinkProvider(target.provider(), target.accessToken());
+            } catch (Exception e) {
+                log.warn("OAuth unlink failed for provider={}", target.provider(), e);
+            }
         }
     }
 
-    private void unlinkAccount(SocialAccount account) {
-        String accessToken = socialTokenService.getValidAccessToken(account);
-        if (accessToken == null || accessToken.isBlank()) {
-            throw new CustomException(ErrorCode.SERVER_ERROR);
-        }
-
-        if (PROVIDER_KAKAO.equals(account.getProvider())) {
+    private void unlinkProvider(String provider, String accessToken) {
+        if (PROVIDER_KAKAO.equals(provider)) {
             unlinkKakao(accessToken);
             return;
         }
 
-        if (PROVIDER_GOOGLE.equals(account.getProvider())) {
+        if (PROVIDER_GOOGLE.equals(provider)) {
             revokeGoogle(accessToken);
             return;
         }
 
-        log.warn("Unsupported social provider: {}", account.getProvider());
+        log.warn("Unsupported social provider: {}", provider);
     }
 
     private void unlinkKakao(String accessToken) {
@@ -65,7 +81,7 @@ public class SocialUnlinkService {
                 String.class
         );
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new CustomException(ErrorCode.SERVER_ERROR);
+            throw new IllegalStateException("Kakao unlink failed: " + response.getStatusCode());
         }
     }
 
@@ -81,7 +97,9 @@ public class SocialUnlinkService {
                 String.class
         );
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new CustomException(ErrorCode.SERVER_ERROR);
+            throw new IllegalStateException("Google revoke failed: " + response.getStatusCode());
         }
     }
+
+    public record SocialUnlinkTarget(String provider, String accessToken) {}
 }

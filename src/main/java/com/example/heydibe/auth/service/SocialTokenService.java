@@ -30,7 +30,7 @@ public class SocialTokenService {
 
     private final SocialAccountRepository socialAccountRepository;
     private final ClientRegistrationRepository clientRegistrationRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Transactional
     public void saveTokens(Long userId, String provider, String accessToken, String refreshToken, LocalDateTime tokenExpiresAt) {
