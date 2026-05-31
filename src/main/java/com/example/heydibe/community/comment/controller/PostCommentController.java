@@ -1,6 +1,6 @@
 package com.example.heydibe.community.comment.controller;
 
-import com.example.heydibe.auth.service.AuthService;
+import com.example.heydibe.common.auth.AuthUser;
 import com.example.heydibe.common.response.ApiResponse;
 import com.example.heydibe.community.comment.dto.request.PostCommentCreateRequest;
 import com.example.heydibe.community.comment.dto.request.PostCommentUpdateRequest;
@@ -8,8 +8,6 @@ import com.example.heydibe.community.comment.dto.response.PostCommentCreateRespo
 import com.example.heydibe.community.comment.dto.response.PostCommentListResponse;
 import com.example.heydibe.community.comment.dto.response.PostCommentUpdateResponse;
 import com.example.heydibe.community.comment.service.PostCommentService;
-import com.example.heydibe.user.entity.User;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,17 +20,15 @@ import java.time.LocalDateTime;
 @RequestMapping("/community")
 public class PostCommentController {
 
-    private final AuthService authService;
     private final PostCommentService postCommentService;
 
     @PostMapping("/posts/{postId}/comments")
     public ApiResponse<PostCommentCreateResponse> createComment(
             @PathVariable Long postId,
             @Valid @RequestBody PostCommentCreateRequest request,
-            HttpSession session
+            @AuthUser Long userId
     ) {
-        User user = authService.getLoginUserFromSession(session);
-        PostCommentCreateResponse response = postCommentService.createComment(user.getId(), postId, request);
+        PostCommentCreateResponse response = postCommentService.createComment(userId, postId, request);
         return ApiResponse.success("댓글 작성 성공", response);
     }
 
@@ -41,11 +37,10 @@ public class PostCommentController {
             @PathVariable Long postId,
             @PathVariable Long commentId,
             @Valid @RequestBody PostCommentUpdateRequest request,
-            HttpSession session
+            @AuthUser Long userId
     ) {
-        User user = authService.getLoginUserFromSession(session);
         PostCommentUpdateResponse response =
-                postCommentService.updateComment(user.getId(), postId, commentId, request);
+                postCommentService.updateComment(userId, postId, commentId, request);
         return ApiResponse.success("댓글 수정 성공", response);
     }
 
@@ -53,10 +48,9 @@ public class PostCommentController {
     public ApiResponse<Void> deleteComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
-            HttpSession session
+            @AuthUser Long userId
     ) {
-        User user = authService.getLoginUserFromSession(session);
-        postCommentService.deleteComment(user.getId(), postId, commentId);
+        postCommentService.deleteComment(userId, postId, commentId);
         return ApiResponse.success("댓글 삭제 성공", null);
     }
 
@@ -65,10 +59,9 @@ public class PostCommentController {
             @PathVariable Long postId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursor,
             @RequestParam(required = false, defaultValue = "10") Integer size,
-            HttpSession session
+            @AuthUser Long userId
     ) {
-        User user = authService.getLoginUserFromSession(session);
-        PostCommentListResponse response = postCommentService.getCommentList(user.getId(), postId, cursor, size);
+        PostCommentListResponse response = postCommentService.getCommentList(userId, postId, cursor, size);
         return ApiResponse.success("댓글 목록 조회 성공", response);
     }
 }

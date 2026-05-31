@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
-    boolean existsByDiaryIdAndDeletedAtIsNull(Long diaryId);
-
     Optional<Post> findByIdAndDeletedAtIsNull(Long postId);
 
     Optional<Post> findByIdAndStatusAndDeletedAtIsNull(Long postId, String status);
@@ -36,7 +34,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             LEFT JOIN UserProfile up ON up.userId = u.id
             WHERE p.status = :status
               AND p.deletedAt IS NULL
-              AND u.deletedAt IS NULL
             ORDER BY p.createdAt DESC
             """)
     List<PostFeedProjection> findPublishedFeed(@Param("status") String status);
@@ -54,7 +51,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE p.id = :postId
               AND p.status = :status
               AND p.deletedAt IS NULL
-              AND u.deletedAt IS NULL
             """)
     Optional<PostDetailProjection> findPublishedDetail(
             @Param("postId") Long postId,

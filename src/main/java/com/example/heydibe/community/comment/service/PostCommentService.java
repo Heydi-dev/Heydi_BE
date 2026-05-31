@@ -11,10 +11,9 @@ import com.example.heydibe.community.comment.entity.PostComment;
 import com.example.heydibe.community.comment.repository.PostCommentRepository;
 import com.example.heydibe.community.post.entity.Post;
 import com.example.heydibe.community.post.repository.PostRepository;
-import com.example.heydibe.user.entity.User;
-import com.example.heydibe.user.entity.UserProfile;
-import com.example.heydibe.user.repository.UserProfileRepository;
+import com.example.heydibe.user.dto.UserPublicProfile;
 import com.example.heydibe.user.repository.UserRepository;
+import com.example.heydibe.user.service.UserPublicProfileService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,12 +33,12 @@ public class PostCommentService {
     private final PostCommentRepository postCommentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
+    private final UserPublicProfileService userPublicProfileService;
 
     @Transactional
     public PostCommentCreateResponse createComment(Long userId, Long postId, PostCommentCreateRequest request) {
         Post post = getPublishedPost(postId);
-        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+        userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
@@ -52,14 +52,14 @@ public class PostCommentService {
                 .build();
 
         PostComment saved = postCommentRepository.save(comment);
-        post.updateCommentCount(post.getCommentCount() + 1);
-        postRepository.save(post);
+        syncCommentCount(post);
 
+        UserPublicProfile author = userPublicProfileService.resolve(userId);
         return new PostCommentCreateResponse(
                 saved.getId(),
-                user.getId(),
-                user.getNickname(),
-                getProfileUrl(userId),
+                author.userId(),
+                author.nickname(),
+                author.profileImageUrl(),
                 saved.getCommentText(),
                 true,
                 saved.getCreatedAt(),
@@ -82,14 +82,12 @@ public class PostCommentService {
         comment.updateContent(request.getContent());
         postCommentRepository.save(comment);
 
-        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
+        UserPublicProfile author = userPublicProfileService.resolve(userId);
         return new PostCommentUpdateResponse(
                 comment.getId(),
-                user.getId(),
-                user.getNickname(),
-                getProfileUrl(userId),
+                author.userId(),
+                author.nickname(),
+                author.profileImageUrl(),
                 comment.getCommentText(),
                 true,
                 comment.getCreatedAt(),
@@ -103,12 +101,10 @@ public class PostCommentService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
         validateOwner(userId, comment);
 
-        postCommentRepository.delete(comment);
+        comment.markDeleted();
+        postCommentRepository.save(comment);
 
-        Post post = getPublishedPost(postId);
-        int updatedCount = Math.max(0, post.getCommentCount() - 1);
-        post.updateCommentCount(updatedCount);
-        postRepository.save(post);
+        syncCommentCount(getPublishedPost(postId));
     }
 
     @Transactional
@@ -132,17 +128,19 @@ public class PostCommentService {
         boolean hasNext = fetched.size() > pageSize;
         List<PostComment> comments = hasNext ? fetched.subList(0, pageSize) : fetched;
 
+        List<Long> authorIds = comments.stream().map(PostComment::getUserId).distinct().toList();
+        Map<Long, UserPublicProfile> authors = userPublicProfileService.resolveAll(authorIds);
+
         List<PostCommentListResponse.Comment> results = new ArrayList<>();
         for (PostComment comment : comments) {
-            User author = userRepository.findByIdAndDeletedAtIsNull(comment.getUserId())
-                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+            UserPublicProfile author = authors.get(comment.getUserId());
             boolean isMine = comment.getUserId().equals(userId);
 
             results.add(new PostCommentListResponse.Comment(
                     comment.getId(),
-                    author.getId(),
-                    author.getNickname(),
-                    getProfileUrl(author.getId()),
+                    author.userId(),
+                    author.nickname(),
+                    author.profileImageUrl(),
                     comment.getCommentText(),
                     isMine,
                     comment.getCreatedAt()
@@ -158,6 +156,12 @@ public class PostCommentService {
         return new PostCommentListResponse(result);
     }
 
+    private void syncCommentCount(Post post) {
+        long count = postCommentRepository.countByPostIdAndDeletedAtIsNull(post.getId());
+        post.updateCommentCount((int) count);
+        postRepository.save(post);
+    }
+
     private void validateOwner(Long userId, PostComment comment) {
         if (!comment.getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
@@ -167,11 +171,5 @@ public class PostCommentService {
     private Post getPublishedPost(Long postId) {
         return postRepository.findByIdAndStatusAndDeletedAtIsNull(postId, STATUS_PUBLISHED)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
-    }
-
-    private String getProfileUrl(Long userId) {
-        return userProfileRepository.findByUserId(userId)
-                .map(UserProfile::getProfileImageUrl)
-                .orElse(null);
     }
 }
