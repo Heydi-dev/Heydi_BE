@@ -162,12 +162,6 @@ public enum ErrorCode {
             "이미 해당 월 리포트에 포함된 일기입니다"
     ),
 
-    DIARY_PHOTO_ALREADY_EXISTS(
-            HttpStatus.CONFLICT,
-            "409",
-            "이미 사진이 등록되어 있습니다"
-    ),
-
     CONVERSATION_DIARY_ALREADY_EXISTS(
             HttpStatus.CONFLICT,
             "409",

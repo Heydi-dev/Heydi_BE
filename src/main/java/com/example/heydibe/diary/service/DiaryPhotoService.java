@@ -34,8 +34,8 @@ public class DiaryPhotoService {
         validatePhotosInput(photos);
 
         long count = diaryAttachmentRepository.countByDiaryId(diary.getId());
-        if (count > 0) {
-            throw new CustomException(ErrorCode.DIARY_PHOTO_ALREADY_EXISTS);
+        if (count + photos.size() > MAX_PHOTOS) {
+            throw new CustomException(ErrorCode.DIARY_PHOTO_LIMIT_EXCEEDED);
         }
 
         return savePhotos(diary, photos);
@@ -78,7 +78,7 @@ public class DiaryPhotoService {
         for (DiaryAttachment attachment : attachments) {
             photos.add(new DiaryPhotoListResponse.Photo(
                     attachment.getId(),
-                    attachment.getFileUrl()
+                    s3Service.resolvePublicUrl(attachment.getFileUrl())
             ));
         }
 
@@ -99,7 +99,7 @@ public class DiaryPhotoService {
 
             uploadedPhotos.add(new DiaryPhotoUploadResponse.Photo(
                     saved.getId(),
-                    saved.getFileUrl()
+                    s3Service.resolvePublicUrl(saved.getFileUrl())
             ));
         }
 

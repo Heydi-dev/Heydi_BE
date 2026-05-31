@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -34,17 +35,8 @@ public class S3Service {
     @Value("${aws.s3.presigned.expire-seconds:300}")
     private long expireSeconds;
 
-    @Value("${app.profile-image-base-url:https://test-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String profileImageBaseUrl;
-
     @Value("${app.default-profile-image-key:profiles/default.png}")
     private String defaultProfileImageKey;
-
-    @Value("${app.post-image-base-url:https://test-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String postImageBaseUrl;
-
-    @Value("${app.diary-image-base-url:https://test-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String diaryImageBaseUrl;
 
     public String generatePresignedUrl(String objectKey, String contentType) {
         try {
@@ -67,7 +59,6 @@ public class S3Service {
 
     public String uploadProfileImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            // 파일이 없으면 null 반환 (프론트엔드에서 기본 이미지 처리)
             return null;
         }
 
@@ -85,23 +76,19 @@ public class S3Service {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String baseUrl = profileImageBaseUrl.endsWith("/")
-                    ? profileImageBaseUrl.substring(0, profileImageBaseUrl.length() - 1)
-                    : profileImageBaseUrl;
-            return baseUrl + "/" + objectKey;
+            return buildPublicUrl(objectKey);
         } catch (IOException e) {
             throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
         }
     }
 
     public void deleteProfileImage(String profileImageUrl) {
-        // null이거나 빈 문자열이면 삭제할 이미지가 없음
         if (profileImageUrl == null || profileImageUrl.isBlank()) {
             return;
         }
 
         try {
-            String objectKey = extractObjectKeyFromUrl(profileImageUrl, profileImageBaseUrl);
+            String objectKey = extractObjectKey(profileImageUrl);
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucket)
                     .key(objectKey)
@@ -113,15 +100,8 @@ public class S3Service {
         }
     }
 
-    /**
-     * 기본 프로필 이미지 URL 반환
-     * S3에 업로드된 기본 이미지 URL을 반환
-     */
     public String getDefaultProfileImageUrl() {
-        String baseUrl = profileImageBaseUrl.endsWith("/")
-                ? profileImageBaseUrl.substring(0, profileImageBaseUrl.length() - 1)
-                : profileImageBaseUrl;
-        return baseUrl + "/" + defaultProfileImageKey;
+        return buildPublicUrl(defaultProfileImageKey);
     }
 
     public String uploadPostImage(MultipartFile file) {
@@ -143,8 +123,7 @@ public class S3Service {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String baseUrl = normalizeBaseUrl(postImageBaseUrl);
-            return baseUrl + "/" + objectKey;
+            return buildPublicUrl(objectKey);
         } catch (IOException e) {
             throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
         }
@@ -155,7 +134,7 @@ public class S3Service {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
-        String sourceKey = extractObjectKeyFromUrl(sourceUrl, postImageBaseUrl);
+        String sourceKey = extractObjectKey(sourceUrl);
         String targetKey = generatePostImageKey(sourceKey);
 
         try {
@@ -167,8 +146,7 @@ public class S3Service {
                     .build();
             s3Client.copyObject(copyRequest);
 
-            String baseUrl = normalizeBaseUrl(postImageBaseUrl);
-            return baseUrl + "/" + targetKey;
+            return buildPublicUrl(targetKey);
         } catch (Exception e) {
             throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
         }
@@ -180,7 +158,7 @@ public class S3Service {
         }
 
         try {
-            String objectKey = extractObjectKeyFromUrl(postImageUrl, postImageBaseUrl);
+            String objectKey = extractObjectKey(postImageUrl);
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucket)
                     .key(objectKey)
@@ -210,8 +188,7 @@ public class S3Service {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String baseUrl = normalizeBaseUrl(diaryImageBaseUrl);
-            return baseUrl + "/" + objectKey;
+            return buildPublicUrl(objectKey);
         } catch (IOException e) {
             throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
         }
@@ -222,7 +199,7 @@ public class S3Service {
             throw new CustomException(ErrorCode.BAD_REQUEST);
         }
 
-        String sourceKey = extractObjectKeyFromUrl(sourceUrl, diaryImageBaseUrl);
+        String sourceKey = extractObjectKey(sourceUrl);
         String targetKey = generateDiaryImageKey(sourceKey);
 
         try {
@@ -234,8 +211,7 @@ public class S3Service {
                     .build();
             s3Client.copyObject(copyRequest);
 
-            String baseUrl = normalizeBaseUrl(diaryImageBaseUrl);
-            return baseUrl + "/" + targetKey;
+            return buildPublicUrl(targetKey);
         } catch (Exception e) {
             throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
         }
@@ -247,7 +223,7 @@ public class S3Service {
         }
 
         try {
-            String objectKey = extractObjectKeyFromUrl(diaryImageUrl, diaryImageBaseUrl);
+            String objectKey = extractObjectKey(diaryImageUrl);
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucket)
                     .key(objectKey)
@@ -256,6 +232,51 @@ public class S3Service {
         } catch (Exception e) {
             // Ignore delete failures for diary image.
         }
+    }
+
+    /**
+     * DB/API에 저장된 URL(또는 object key)을 현재 bucket/region 기준 public URL로 변환한다.
+     * legacy test-bucket URL도 object key 추출 후 올바른 URL로 재조립한다.
+     */
+    public String resolvePublicUrl(String stored) {
+        if (stored == null || stored.isBlank()) {
+            return stored;
+        }
+        return buildPublicUrl(extractObjectKey(stored));
+    }
+
+    public String buildPublicUrl(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return objectKey;
+        }
+        String normalizedKey = objectKey.startsWith("/") ? objectKey.substring(1) : objectKey;
+        return getPublicBaseUrl() + "/" + normalizedKey;
+    }
+
+    private String getPublicBaseUrl() {
+        return "https://" + bucket + ".s3." + region + ".amazonaws.com";
+    }
+
+    private String extractObjectKey(String stored) {
+        if (stored == null || stored.isBlank()) {
+            return stored;
+        }
+
+        if (!stored.startsWith("http://") && !stored.startsWith("https://")) {
+            return stored.startsWith("/") ? stored.substring(1) : stored;
+        }
+
+        try {
+            URI uri = URI.create(stored);
+            String path = uri.getPath();
+            if (path != null && !path.isBlank()) {
+                return path.startsWith("/") ? path.substring(1) : path;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // fall through
+        }
+
+        return stored;
     }
 
     private String generateProfileImageKey(String originalFilename) {
@@ -281,20 +302,6 @@ public class S3Service {
             return "png";
         }
         return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
-    }
-
-    private String extractObjectKeyFromUrl(String url, String baseUrl) {
-        String normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-        if (url.contains(normalizedBaseUrl + "/")) {
-            return url.substring(url.indexOf(normalizedBaseUrl + "/") + normalizedBaseUrl.length() + 1);
-        }
-        return url;
-    }
-
-    private String normalizeBaseUrl(String baseUrl) {
-        return baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1)
-                : baseUrl;
     }
 
     private void validateImageFile(MultipartFile file) {
