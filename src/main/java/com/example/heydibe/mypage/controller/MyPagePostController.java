@@ -27,7 +27,7 @@ public class MyPagePostController {
 
         return ApiResponse.success(
                 "내가 공유한 글 목록을 불러왔습니다.",
-                myPageService.getMyPosts(user.getId())
+                myPageService.getMyPosts(user.getId(), page, size)
         );
     }
 
