@@ -26,7 +26,7 @@ public class MyPagePostController {
         User user = authService.getLoginUserFromSession(session);
 
         return ApiResponse.success(
-                "내가 공유한 글 목록을 불러왔습니다.",
+                "내가 공유한 글 조회 성공",
                 myPageService.getMyPosts(user.getId(), page, size)
         );
     }
@@ -40,7 +40,7 @@ public class MyPagePostController {
         User user = authService.getLoginUserFromSession(session);
 
         return ApiResponse.success(
-                "좋아요한 글 목록을 불러왔습니다.",
+                "내가 좋아요 한 글 조회 성공",
                 myPageService.getLikedPosts(user.getId(), page, size)
         );
     }

@@ -71,12 +71,15 @@ public class MyPageService {
                     p.content AS preview,
                     p.emotion AS emotion,
                     p.topic AS topic,
+                    p.like_count AS like_count,
+                    p.comment_count AS comment_count,
                     p.created_at AS created_at
                 FROM post_like pl
                 JOIN post p ON pl.post_id = p.post_id
                 JOIN users u ON p.user_id = u.user_id
                 LEFT JOIN user_profile up ON u.user_id = up.user_id
                 WHERE pl.user_id = ?
+                  AND p.status = ?
                   AND p.deleted_at IS NULL
                 ORDER BY p.created_at DESC, p.post_id DESC
                 LIMIT ? OFFSET ?
@@ -102,10 +105,12 @@ public class MyPageService {
                             .emotion(nullToEmpty(rs.getString("emotion")))
                             .topics(topics)
                             .createdAt(createdAt)
-                            .isLiked(true)
+                            .likeCount(rs.getInt("like_count"))
+                            .commentCount(rs.getInt("comment_count"))
+                            .liked(true)
                             .build();
                 },
-                userId, size, offset
+                userId, STATUS_PUBLISHED, size, offset
         );
 
         return MyPageLikedPostResponse.builder()
@@ -131,8 +136,10 @@ public class MyPageService {
                     p.content AS preview,
                     p.emotion AS emotion,
                     p.topic AS topic,
+                    p.like_count AS like_count,
+                    p.comment_count AS comment_count,
                     p.created_at AS created_at,
-                    EXISTS(
+                    EXISTS (
                         SELECT 1
                         FROM post_like pl
                         WHERE pl.post_id = p.post_id
@@ -168,7 +175,9 @@ public class MyPageService {
                             .emotion(nullToEmpty(rs.getString("emotion")))
                             .topics(topics)
                             .createdAt(createdAt)
-                            .isLiked(rs.getBoolean("is_liked"))
+                            .likeCount(rs.getInt("like_count"))
+                            .commentCount(rs.getInt("comment_count"))
+                            .liked(rs.getBoolean("is_liked"))
                             .build();
                 },
                 userId, userId, STATUS_PUBLISHED, size, offset
@@ -184,19 +193,36 @@ public class MyPageService {
 
     private long countLikedPosts(Long userId) {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM post_like WHERE user_id = ?",
+                """
+                SELECT COUNT(*)
+                FROM post_like pl
+                JOIN post p ON pl.post_id = p.post_id
+                WHERE pl.user_id = ?
+                  AND p.status = ?
+                  AND p.deleted_at IS NULL
+                """,
                 Long.class,
-                userId
+                userId,
+                STATUS_PUBLISHED
         );
+
         return count != null ? count : 0L;
     }
 
     private long countSharedPosts(Long userId) {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM post WHERE user_id = ? AND status = ? AND deleted_at IS NULL",
+                """
+                SELECT COUNT(*)
+                FROM post
+                WHERE user_id = ?
+                  AND status = ?
+                  AND deleted_at IS NULL
+                """,
                 Long.class,
-                userId, STATUS_PUBLISHED
+                userId,
+                STATUS_PUBLISHED
         );
+
         return count != null ? count : 0L;
     }
 
