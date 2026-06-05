@@ -34,7 +34,7 @@ public class DiaryConversation {
     @Column(length = 10, nullable = false)
     private String sender;
 
-    @Column(name = "message_text", nullable = false)
+    @Column(name = "message_text", nullable = false, columnDefinition = "TEXT")
     private String messageText;
 
     @Column(name = "created_at", nullable = false)

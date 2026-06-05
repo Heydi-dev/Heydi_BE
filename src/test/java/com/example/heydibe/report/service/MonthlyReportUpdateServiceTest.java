@@ -43,22 +43,17 @@ class MonthlyReportUpdateServiceTest {
     void updateReport_createsMonthlyReportAnalysisJson() throws Exception {
         Long userId = 1L;
         YearMonth yearMonth = YearMonth.of(2025, 1);
-        LocalDate today = LocalDate.of(2025, 2, 12);
         MonthlyReportUpdateService service = new MonthlyReportUpdateService(
                 diaryRepository,
                 monthlyReportRepository,
                 aiService,
                 objectMapper
-        ) {
-            @Override
-            protected LocalDate today() {
-                return today;
-            }
-        };
+        );
 
         Diary first = createDiary(10L, userId, LocalDate.of(2025, 1, 3), "pasta was good", "joy", "pasta", "lunch");
         Diary second = createDiary(11L, userId, LocalDate.of(2025, 1, 12), "overtime was hard", "sad", "overtime", "pasta");
-        Diary reminder = createDiary(9L, userId, today.minusMonths(1), "one month ago", "happy", "rest", null);
+        Diary firstReminder = createDiary(8L, userId, LocalDate.of(2024, 12, 5), "previous month one", "calm", "rest", null);
+        Diary secondReminder = createDiary(9L, userId, LocalDate.of(2024, 12, 20), "previous month two", "happy", "walk", null);
 
         when(diaryRepository.findByUser_IdAndDeletedAtIsNullAndDiaryDateBetweenOrderByDiaryDateAsc(
                 userId,
@@ -67,9 +62,9 @@ class MonthlyReportUpdateServiceTest {
         )).thenReturn(List.of(first, second));
         when(diaryRepository.findByUser_IdAndDeletedAtIsNullAndDiaryDateBetweenOrderByDiaryDateAsc(
                 userId,
-                today.minusMonths(1),
-                today.minusMonths(1)
-        )).thenReturn(List.of(reminder));
+                LocalDate.of(2024, 12, 1),
+                LocalDate.of(2024, 12, 31)
+        )).thenReturn(List.of(firstReminder, secondReminder));
         when(aiService.generateMonthlyPreferences(anyList())).thenReturn(objectMapper.readTree("""
                 {
                   "like": {"keyword": "pasta", "evidence": []},
@@ -102,8 +97,9 @@ class MonthlyReportUpdateServiceTest {
         assertThat(json.path("weeks").size()).isEqualTo(5);
         assertThat(json.path("weeks").path(0).path("startDate").asText()).isEqualTo("2025-01-01");
         assertThat(json.path("weeks").path(0).path("endDate").asText()).isEqualTo("2025-01-05");
-        assertThat(json.path("lastMonthReminder").path("diaryId").asLong()).isEqualTo(9L);
-        assertThat(json.path("lastMonthReminder").path("date").asText()).isEqualTo("2025-01-12");
+        assertThat(json.path("lastMonthReminder").path("sourceYearMonth").asText()).isEqualTo("2024-12");
+        assertThat(json.path("lastMonthReminder").path("diaryId").asLong()).isIn(8L, 9L);
+        assertThat(json.path("lastMonthReminder").path("date").asText()).isIn("2024-12-05", "2024-12-20");
     }
 
     private Diary createDiary(Long diaryId, Long userId, LocalDate date, String content, String emotion, String topic1, String topic2) {

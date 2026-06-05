@@ -38,10 +38,10 @@ public class Diary {
     @Column(length = 100)
     private String title;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "summary_one_line", length = 255)
+    @Column(name = "summary_one_line", columnDefinition = "TEXT")
     private String summaryOneLine;
 
     @Column(name = "main_emotion", length = 50)

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
@@ -79,7 +80,7 @@ public class MonthlyReportUpdateService {
         analysisJson.set("preferenceDetails", preferencesResponse.deepCopy());
         analysisJson.put("summary", activityComment);
         analysisJson.put("monthlyInsight", feedbackComment);
-        analysisJson.set("lastMonthReminder", buildLastMonthReminder(userId, yearMonth, today()));
+        analysisJson.set("lastMonthReminder", buildLastMonthReminder(userId, yearMonth));
         analysisJson.set("calendar", buildCalendar(diaries));
         analysisJson.set("topics", buildTopics(diaries));
         analysisJson.set("weeks", buildWeeks(yearMonth, diaries));
@@ -209,13 +210,16 @@ public class MonthlyReportUpdateService {
         return weeks;
     }
 
-    private JsonNode buildLastMonthReminder(Long userId, YearMonth yearMonth, LocalDate today) {
-        LocalDate reminderDate = today.minusMonths(1);
+    private JsonNode buildLastMonthReminder(Long userId, YearMonth yearMonth) {
+        YearMonth previousMonth = yearMonth.minusMonths(1);
+        LocalDate startDate = previousMonth.atDay(1);
+        LocalDate endDate = previousMonth.atEndOfMonth();
+
         List<Diary> previousDiaries = diaryRepository
                 .findByUser_IdAndDeletedAtIsNullAndDiaryDateBetweenOrderByDiaryDateAsc(
                         userId,
-                        reminderDate,
-                        reminderDate
+                        startDate,
+                        endDate
                 )
                 .stream()
                 .filter(this::isReportableDiary)
@@ -225,9 +229,9 @@ public class MonthlyReportUpdateService {
             return objectMapper.nullNode();
         }
 
-        Diary reminder = previousDiaries.get(0);
+        Diary reminder = previousDiaries.get(ThreadLocalRandom.current().nextInt(previousDiaries.size()));
         ObjectNode node = objectMapper.createObjectNode();
-        node.put("sourceYearMonth", YearMonth.from(reminderDate).format(YEAR_MONTH_FORMATTER));
+        node.put("sourceYearMonth", previousMonth.format(YEAR_MONTH_FORMATTER));
         node.put("diaryId", reminder.getId());
         node.put("date", resolveDiaryDate(reminder).format(DATE_FORMATTER));
         node.put("title", reminder.getTitle());
@@ -236,10 +240,6 @@ public class MonthlyReportUpdateService {
         node.set("topics", topics);
         node.put("emotion", reminder.getMainEmotion());
         return node;
-    }
-
-    protected LocalDate today() {
-        return LocalDate.now();
     }
 
     private boolean isReportableDiary(Diary diary) {
