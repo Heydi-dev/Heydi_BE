@@ -176,7 +176,7 @@ class ConversationSessionServiceTest {
         when(diaryConversationRepository.findAllByDiaryId(diaryId)).thenReturn(List.of(c1, c2));
         when(aiService.generateDiaryContent(anyList())).thenReturn(diaryContent);
         when(aiService.generateOneLineDiary(diaryContent)).thenReturn("비 오는 출근길에도 차분히 하루를 보냈다.");
-        when(aiService.generateEmotion(diaryContent)).thenReturn("joy");
+        when(aiService.generateEmotion(diaryContent)).thenReturn("기쁨");
         when(aiService.generateTopics(diaryContent)).thenReturn(List.of("화해", "학교"));
         when(diaryRepository.save(any(Diary.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -187,7 +187,7 @@ class ConversationSessionServiceTest {
         assertThat(response.getDiary().getId()).isEqualTo(diaryId);
         assertThat(response.getDiary().getContent()).isEqualTo(diaryContent);
         assertThat(response.getDiary().getOneLineDiary()).isEqualTo("비 오는 출근길에도 차분히 하루를 보냈다.");
-        assertThat(response.getDiary().getEmotionCategory()).isEqualTo("joy");
+        assertThat(response.getDiary().getEmotionCategory()).isEqualTo("기쁨");
         assertThat(response.getDiary().getTopic()).containsExactly("화해", "학교");
 
         // 응답 JSON에 emotionText 필드가 없어야 한다.
@@ -195,7 +195,7 @@ class ConversationSessionServiceTest {
         assertThat(diaryJson).doesNotContainKey("emotionText");
 
         assertThat(diary.getConversationStatus()).isEqualTo("ENDED");
-        assertThat(diary.getMainEmotion()).isEqualTo("joy");
+        assertThat(diary.getMainEmotion()).isEqualTo("기쁨");
         assertThat(diary.getTopic1()).isEqualTo("화해");
         assertThat(diary.getTopic2()).isEqualTo("학교");
         assertThat(diary.getConversationDurationSeconds()).isGreaterThanOrEqualTo(0);

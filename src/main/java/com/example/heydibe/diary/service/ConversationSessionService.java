@@ -45,7 +45,7 @@ public class ConversationSessionService {
     private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private static final Set<String> ALLOWED_EMOTIONS = Set.of(
-            "happy", "joy", "neutral", "sad", "annoyed", "angry"
+            "행복", "분노", "슬픔", "기쁨", "짜증", "무난함"
     );
 
     private final DiaryRepository diaryRepository;
@@ -338,7 +338,7 @@ public class ConversationSessionService {
 
     private ConversationSessionEndResponse.DiarySummary buildDiarySummary(Diary diary) {
         String emotionCategory = diary.getMainEmotion() == null || diary.getMainEmotion().isBlank()
-                ? "neutral"
+                ? "무난함"
                 : diary.getMainEmotion();
 
         List<String> topics = new ArrayList<>();

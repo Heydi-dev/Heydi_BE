@@ -26,6 +26,7 @@ import com.example.heydibe.diary.entity.DiaryConversation;
 import com.example.heydibe.diary.repository.DiaryAttachmentRepository;
 import com.example.heydibe.diary.repository.DiaryConversationRepository;
 import com.example.heydibe.diary.repository.DiaryRepository;
+import com.example.heydibe.report.service.MonthlyReportUpdateService;
 import com.example.heydibe.user.entity.User;
 
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final DiaryAttachmentRepository diaryAttachmentRepository;
     private final DiaryConversationRepository diaryConversationRepository;
+    private final MonthlyReportUpdateService monthlyReportUpdateService;
 
     public TestResponse getTest() {
         return aiService.test();
@@ -157,6 +159,7 @@ public class DiaryService {
 
         diary.setUpdatedAt(java.time.LocalDateTime.now());
         diaryRepository.save(diary);
+        monthlyReportUpdateService.updateReportForDiary(diary);
 
         return new DiaryPatchResponse(
                 diaryId,

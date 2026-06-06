@@ -50,10 +50,10 @@ class MonthlyReportUpdateServiceTest {
                 objectMapper
         );
 
-        Diary first = createDiary(10L, userId, LocalDate.of(2025, 1, 3), "pasta was good", "joy", "pasta", "lunch");
-        Diary second = createDiary(11L, userId, LocalDate.of(2025, 1, 12), "overtime was hard", "sad", "overtime", "pasta");
-        Diary firstReminder = createDiary(8L, userId, LocalDate.of(2024, 12, 5), "previous month one", "calm", "rest", null);
-        Diary secondReminder = createDiary(9L, userId, LocalDate.of(2024, 12, 20), "previous month two", "happy", "walk", null);
+        Diary first = createDiary(10L, userId, LocalDate.of(2025, 1, 3), "pasta was good", "기쁨", "pasta", "lunch");
+        Diary second = createDiary(11L, userId, LocalDate.of(2025, 1, 12), "overtime was hard", "슬픔", "overtime", "pasta");
+        Diary firstReminder = createDiary(8L, userId, LocalDate.of(2024, 12, 5), "previous month one", "무난함", "rest", null);
+        Diary secondReminder = createDiary(9L, userId, LocalDate.of(2024, 12, 20), "previous month two", "행복", "walk", null);
 
         when(diaryRepository.findByUser_IdAndDeletedAtIsNullAndDiaryDateBetweenOrderByDiaryDateAsc(
                 userId,
