@@ -85,7 +85,7 @@ app:
   post-image-base-url: https://heydi-dev-storage.s3.ap-southeast-2.amazonaws.com
   diary-image-base-url: https://heydi-dev-storage.s3.ap-southeast-2.amazonaws.com
   frontend:
-    base-url: http://localhost:5173
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
     oauth:
       success-redirect: /login/success
       failure-redirect: /login/failure
