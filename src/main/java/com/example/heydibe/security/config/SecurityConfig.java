@@ -144,15 +144,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 포트 변경에 대응하기 위해 와일드카드 패턴 사용
-        // allowCredentials(true)와 함께 사용 가능
         configuration.setAllowedOriginPatterns(Arrays.asList(
             "http://localhost:*",
             "http://127.0.0.1:*",
             "https://localhost:*",
             "https://127.0.0.1:*",
-            "https://heydi-liart.vercel.app",
-            "https://*.vercel.app"
+            "https://heydi.site",
+            "https://www.heydi.site"
         ));
         configuration.setAllowedMethods(
             Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")

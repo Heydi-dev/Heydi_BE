@@ -25,8 +25,8 @@ spring:
     timeout: 1800
     cookie:
       http-only: true
-      secure: false
-      same-site: lax
+      secure: ${SESSION_COOKIE_SECURE:false}
+      same-site: ${SESSION_COOKIE_SAME_SITE:lax}
       name: JSESSIONID
       path: /
 
